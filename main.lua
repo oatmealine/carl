@@ -100,6 +100,11 @@ function love.load()
   body = body, shape = shape,
   fixture = love.physics.newFixture(body, shape)})
 
+  for _,obj in ipairs(objects.grounds) do
+    obj.fixture:setFriction(0.5)
+    obj.fixture:setUserData('grass')
+  end
+
   objects.dirt = {}
   
   local body = love.physics.newBody(world, -480, 800-50/2 + 560/2 + 10)
@@ -108,34 +113,46 @@ function love.load()
   body = body, shape = shape,
   fixture = love.physics.newFixture(body, shape)})
 
+  for _,obj in ipairs(objects.dirt) do
+    obj.fixture:setFriction(0.4)
+    obj.fixture:setUserData('dirt')
+  end
+
   objects.ball = {}
   objects.ball.body = love.physics.newBody(world, carlcheck[1], carlcheck[2], "dynamic")
   objects.ball.shape = love.physics.newCircleShape(25)
   objects.ball.fixture = love.physics.newFixture(objects.ball.body, objects.ball.shape, 1)
   objects.ball.fixture:setRestitution(0.03)
+  objects.ball.fixture:setFriction(0.1)
+  objects.ball.body:setFixedRotation(true)
+  objects.ball.fixture:setUserData('carl')
 
-  world:setCallbacks(function(fixture1, fixture2)
-    local hascarl = false
-    local hasground = false
+  local function checkcarlcoll(func)
+    return function(fixture1, fixture2, coll)
+      local hascarl = false
+      local hasground = false
 
-    for _,f in ipairs(objects.ball.body:getFixtures()) do
-      if f == fixture1 or f == fixture2 then
-        hascarl = true
-      end
-    end
-
-    for _,g in ipairs(objects.grounds) do
-      for _,f in ipairs(g.body:getFixtures()) do
+      for _,f in ipairs(objects.ball.body:getFixtures()) do
         if f == fixture1 or f == fixture2 then
-          hasground = true
+          hascarl = true
         end
       end
-    end
 
-    if hascarl and hasground then
-      carlcanjump = true
+      for _,g in ipairs(objects.grounds) do
+        for _,f in ipairs(g.body:getFixtures()) do
+          if f == fixture1 or f == fixture2 then
+            hasground = true
+          end
+        end
+      end
+
+      if hascarl and hasground then
+        func(coll)
+      end
     end
-  end)
+  end
+
+  world:setCallbacks(checkcarlcoll(function() carlcanjump = true end), checkcarlcoll(function() carlcanjump = false end))
 
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
   love.window.setMode(1200, 800)
@@ -194,7 +211,7 @@ function love.update(dt)
     local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
     carlschutorigin = {objects.ball.body:getX()+math.cos(carlrot)*gunwidth, objects.ball.body:getY()+math.sin(carlrot)*gunwidth}
     carlschutloc = {mx+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50), my+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50)}
-	
+
 	  carlschut = 40
   end
 
