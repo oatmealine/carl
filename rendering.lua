@@ -18,6 +18,25 @@ this.renderWorld = function(camera)
 
     love.graphics.setColor(1,1,1)
     love.graphics.draw(eyes, objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1), objects.ball.body:getY()-objects.ball.shape:getRadius(), 0, (objects.ball.shape:getRadius()*2)/eyes:getWidth() * (carlflipped and 1 or -1), (objects.ball.shape:getRadius()*2)/eyes:getHeight())
+  else
+    eyes = sprites["carleyescry"]
+    local yoff = ease.outQuad(love.timer.getTime()-recentdeath, 0, 1, 0.6)*200
+
+    love.graphics.push()
+
+    love.graphics.translate(objects.ball.body:getX()+objects.ball.shape:getRadius()/2, objects.ball.body:getY()+objects.ball.shape:getRadius()/2-yoff)
+    love.graphics.rotate(yoff/200*math.pi/3*2)
+    love.graphics.translate(-objects.ball.body:getX()-objects.ball.shape:getRadius()/2, -objects.ball.body:getY()-objects.ball.shape:getRadius()/2+yoff)
+
+    love.graphics.setColor(1, 198/255, 13/255, 1-(love.timer.getTime()-recentdeath)/0.5)
+    love.graphics.circle("fill", objects.ball.body:getX(), objects.ball.body:getY()-yoff, objects.ball.shape:getRadius())
+
+    love.graphics.setColor(0.1,0.1,0.1, 1-(love.timer.getTime()-recentdeath)/0.5)
+    love.graphics.circle("line", objects.ball.body:getX(), objects.ball.body:getY()-yoff, objects.ball.shape:getRadius())
+
+    love.graphics.setColor(1,1,1, 1-(love.timer.getTime()-recentdeath)/0.5)
+    love.graphics.draw(eyes, objects.ball.body:getX()-objects.ball.shape:getRadius(), objects.ball.body:getY()-objects.ball.shape:getRadius()-yoff, 0, (objects.ball.shape:getRadius()*2)/eyes:getWidth(), (objects.ball.shape:getRadius()*2)/eyes:getHeight())
+    love.graphics.pop()
   end
 
    -- world boundaries / Cheap World Border Wind Trick
@@ -64,6 +83,7 @@ end
 local lasthover = 0
 
 this.renderPause = function()
+  love.graphics.setFont(fonts[2])
   local buttonwidth = love.graphics.getWidth()/3
   local buttonheight = love.graphics.getHeight()/20
   local buttonx = (love.graphics.getWidth()-buttonwidth)/2
@@ -120,7 +140,7 @@ this.renderUI = function()
     love.graphics.rectangle('fill', -2, 5+carlschut, 4, 9)
     love.graphics.rectangle('fill', 5+carlschut, -2, 9, 4)
     love.graphics.rectangle('fill', -2, -5-carlschut-9, 4, 9)
-    love.graphics.setColor(canschut and {0,0,0} or {0.3,0.3,0.3})
+    love.graphics.setColor(carlschut/40/3, carlschut/40/3, carlschut/40/3)
     love.graphics.rectangle('line', -5-carlschut-9, -2, 9, 4)
     love.graphics.rectangle('line', -2, 5+carlschut, 4, 9)
     love.graphics.rectangle('line', 5+carlschut, -2, 9, 4)

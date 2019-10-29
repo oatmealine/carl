@@ -12,6 +12,7 @@ worldcam = camera()
 worldcam.smoother = camera.smooth.damped(15)
 
 sprites = {}
+fonts = {}
 
 carlschut = 0
 carlschutorigin = {0,0}
@@ -20,6 +21,7 @@ carlschutloc = {0,0}
 carlcanjump = false
 
 carldead = false
+recentdeath = love.timer.getTime()
 
 carlcheck = {800/2, 800/2}
 
@@ -47,6 +49,7 @@ mouseonbutton = false
 
 function killcarl()
   carldead = true
+  recentdeath = love.timer.getTime()
 
   local keepx = objects.ball.body:getX()
   local keepy = objects.ball.body:getY()
@@ -154,6 +157,17 @@ function love.load()
 
   world:setCallbacks(checkcarlcoll(function() carlcanjump = true end), checkcarlcoll(function() carlcanjump = false end))
 
+  --[[
+    fonts:
+    1 - defualt, regular size
+    2 - default, big (for menu elements)
+  ]]
+
+  fonts = {
+    love.graphics.newFont(12),
+    love.graphics.newFont(24)
+  }
+
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
   love.window.setMode(1200, 800)
 end
@@ -223,6 +237,7 @@ function love.update(dt)
 end
 
 function love.draw()
+  love.graphics.setFont(fonts[1])
   worldcam:attach()
 
   love.graphics.push()
