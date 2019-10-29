@@ -7,12 +7,14 @@ ease = require 'lib.easing'
 
 rendering = require 'rendering'
 require 'utils'
+require 'audio'
 
 worldcam = camera()
 worldcam.smoother = camera.smooth.damped(15)
 
 sprites = {}
 fonts = {}
+sounds = {}
 
 carlschut = 0
 carlschutorigin = {0,0}
@@ -36,6 +38,8 @@ recentpause = 0
 ontitlescreen = true
 titlescreentweenstart = -90
 
+madecocksfx = true
+
 -- main menu stuff
 buttons = {'resume', 'reset', 'exit'}
 buttonactions = {function()
@@ -51,11 +55,14 @@ end}
 mouseonbutton = false
 
 function killcarl()
+  if carldead then return end
   carldead = true
   recentdeath = love.timer.getTime()
 
   local keepx = objects.ball.body:getX()
   local keepy = objects.ball.body:getY()
+
+  playSound('carlcry'..math.random(1,5))
 
   gametimer.during(0.6, function()
     objects.ball.body:setPosition(keepx, keepy)
@@ -63,7 +70,7 @@ function killcarl()
   end, function()
     carldead = false
     objects.ball.body:setPosition(carlcheck[1], carlcheck[2])
-    objects.ball.body:setLinearVelocity(0, 0)
+    objects.ball.body:setLinearVelocity(0, 0.1)
   end)
 end
 
@@ -92,6 +99,46 @@ function love.load()
     end
   end
   addsprites()
+
+  
+  sound_exists = {}
+  local function addAudio(d)
+    local dir = "assets/audio"
+    if d then
+      dir = dir .. "/" .. d
+    end
+    local files = love.filesystem.getDirectoryItems(dir)
+    for _,file in ipairs(files) do
+      if love.filesystem.getInfo(dir .. "/" .. file).type == "directory" then
+        local newdir = file
+        if d then
+          newdir = d .. "/" .. newdir
+        end
+        addAudio(file)
+      else
+        local audioname = file
+        if file:ends(".wav") then audioname = file:sub(1, -5) end
+        if file:ends(".mp3") then audioname = file:sub(1, -5) end
+        if file:ends(".ogg") then audioname = file:sub(1, -5) end
+        if file:ends(".flac") then audioname = file:sub(1, -5) end
+        if file:ends(".xm") then audioname = file:sub(1, -4) end
+        --[[if d then
+          audioname = d .. "/" .. audioname
+        end]]
+        sound_exists[audioname] = true
+        --print("ℹ️ audio "..audioname.." added")
+      end
+    end
+  end
+  addAudio()
+
+  registerSound('shotgun_cock', 1.0)
+  registerSound('shotgun_fire1', 1.0)
+  registerSound('shotgun_fire2', 1.0)
+
+  for i=1,5 do
+    registerSound('carlcry'..i, 1.0)
+  end
 
   love.physics.setMeter(64)
   world = love.physics.newWorld(0, 9.81*64, true)
@@ -170,7 +217,7 @@ function love.load()
   fonts = {
     love.graphics.newFont(12),
     love.graphics.newFont(24),
-    love.graphics.newFont('assets/fonts/KaushanScript-Regular.ttf', 46)
+    love.graphics.newFont('assets/fonts/KaushanScript-Regular.ttf', 128)
   }
 
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
@@ -229,6 +276,11 @@ function love.update(dt)
     killcarl()
   end
 
+  if carlschut < 10 and not madecocksfx then
+    madecocksfx = true
+    playSound('shotgun_cock', 1.0)
+  end
+
   if love.mouse.isDown(1) and carlschut < 10 then
     local gunwidth = objects.ball.shape:getRadius()*3
     local mx,my = worldcam:mousePosition()
@@ -237,11 +289,13 @@ function love.update(dt)
     carlschutloc = {mx+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50), my+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50)}
 
     carlschut = 40
-    
+    madecocksfx = false
     if ontitlescreen then
       ontitlescreen = false
       titlescreentweenstart = gametime
     end
+
+    playSound('shotgun_fire'..math.random(1,2), 1.0)
   end
 
   if carlschut > 0 then 
@@ -290,6 +344,9 @@ function love.draw()
   if pause and not love.keyboard.isDown('tab') then
     rendering:renderPause()
   end
+
+  love.graphics.setColor(1,1,1,1-(gametime-0))
+  love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 end
 
 function love.keypressed(key)
