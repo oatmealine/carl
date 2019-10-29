@@ -33,6 +33,9 @@ pause = false
 gametime = 0
 recentpause = 0
 
+ontitlescreen = true
+titlescreentweenstart = -90
+
 -- main menu stuff
 buttons = {'resume', 'reset', 'exit'}
 buttonactions = {function()
@@ -161,11 +164,13 @@ function love.load()
     fonts:
     1 - defualt, regular size
     2 - default, big (for menu elements)
+    3 - handwriting, beeeg (for title screen)
   ]]
 
   fonts = {
     love.graphics.newFont(12),
-    love.graphics.newFont(24)
+    love.graphics.newFont(24),
+    love.graphics.newFont('assets/fonts/KaushanScript-Regular.ttf', 46)
   }
 
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
@@ -184,21 +189,26 @@ function love.update(dt)
 
   aimpos = {love.mouse.getX(), love.mouse.getY(), love.mouse.isDown(2)}
 
-  worldcam:lockPosition(math.max(objects.ball.body:getX() + (love.mouse.getX()-love.graphics.getWidth())/(love.graphics.getWidth()/2)*24, 100),
-  math.min(objects.ball.body:getY() + (love.mouse.getY()-love.graphics.getHeight())/(love.graphics.getHeight()/2)*20, 800))
+  if gametime-titlescreentweenstart < 2 then
+    worldcam:lockPosition(math.max(objects.ball.body:getX(), 100),
+    objects.ball.body:getY() - 600 + ease.inOutSine(gametime-titlescreentweenstart, 0, 600, 2))
+  else
+    worldcam:lockPosition(math.max(objects.ball.body:getX() + (love.mouse.getX()-love.graphics.getWidth())/(love.graphics.getWidth()/2)*24, 100),
+    math.min(objects.ball.body:getY() + (love.mouse.getY()-love.graphics.getHeight())/(love.graphics.getHeight()/2)*20, 800))
+  end
 
-  if love.keyboard.isDown("d") then
+  if love.keyboard.isDown("d") and not ontitlescreen then
     objects.ball.body:applyForce(400, 0)
-  elseif love.keyboard.isDown("a") then
+  elseif love.keyboard.isDown("a") and not ontitlescreen then
     objects.ball.body:applyForce(-400, 0)
   end
 
-  if love.keyboard.isDown("w") and carlcanjump then
+  if love.keyboard.isDown("w") and carlcanjump and not ontitlescreen then
     objects.ball.body:applyForce(0, -12000)
     carlcanjump = false
   end
 
-  if love.mouse.isDown(2) then
+  if love.mouse.isDown(2) and not ontitlescreen then
     objects.ball.fixture:setRestitution(0)
     objects.ball.body:setLinearDamping(1.3)
     objects.ball.fixture:setDensity(2)
@@ -226,7 +236,12 @@ function love.update(dt)
     carlschutorigin = {objects.ball.body:getX()+math.cos(carlrot)*gunwidth, objects.ball.body:getY()+math.sin(carlrot)*gunwidth}
     carlschutloc = {mx+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50), my+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50)}
 
-	  carlschut = 40
+    carlschut = 40
+    
+    if ontitlescreen then
+      ontitlescreen = false
+      titlescreentweenstart = gametime
+    end
   end
 
   if carlschut > 0 then 
@@ -254,17 +269,33 @@ function love.draw()
 
   worldcam:detach()
 
-  rendering:renderUI()
+  if not ontitlescreen then
+    rendering:renderUI()
+  end
 
-  if pause then
+  if ontitlescreen then
+    titlescreentweenstart = gametime
+  else
+    if gametime-titlescreentweenstart > 2 then
+      titlescreentweenstart = gametime-2
+    end
+  end
+
+  love.graphics.setColor(1,1,1,1-ease.inOutSine(gametime-titlescreentweenstart, 0, 1, 2))
+  love.graphics.setFont(fonts[3])
+  love.graphics.printf('Carl', 0, 90, love.graphics.getWidth(), 'center')
+  love.graphics.setFont(fonts[1])
+  love.graphics.printf('Press M1 to start', 0, 90+10+fonts[3]:getHeight(), love.graphics.getWidth(), 'center')
+
+  if pause and not love.keyboard.isDown('tab') then
     rendering:renderPause()
   end
 end
 
 function love.keypressed(key)
-  if key == 'r' and not carldead then
+  if key == 'r' and not carldead and not ontitlescreen then
     killcarl()
-  elseif key == 'escape' then
+  elseif key == 'escape' and not ontitlescreen then
     pause = not pause
     recentpause = love.timer.getTime()
   end
