@@ -265,9 +265,6 @@ function love.update(dt)
     objects.ball.fixture:setDensity(1)
   end
 
-  if objects.ball.body:getX() > love.graphics.getWidth()+100 then
-    objects.ball.body:applyForce(-2000, 0)
-  end
   if objects.ball.body:getX() < -100 then
     objects.ball.body:applyForce(2000, 0)
   end
@@ -335,11 +332,18 @@ function love.draw()
     end
   end
 
-  love.graphics.setColor(1,1,1,1-ease.inOutSine(gametime-titlescreentweenstart, 0, 1, 2))
   love.graphics.setFont(fonts[3])
-  love.graphics.printf('Carl', 0, 90, love.graphics.getWidth(), 'center')
+  local tween = ease.inOutSine(gametime-titlescreentweenstart, 0, 1, 2)
+  for _,o in ipairs({{0,1},{1,0},{1,1},{1,-1}}) do
+    love.graphics.setColor(0,0,0,1-tween)
+    love.graphics.printf('Carl', 0+o[1], 90+o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
+    love.graphics.printf('Carl', 0-o[1], 90-o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
+  end
+  love.graphics.setColor(1,1,1,1-tween)
+  love.graphics.printf('Carl', 0, 90-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
+
   love.graphics.setFont(fonts[1])
-  love.graphics.printf('Press M1 to start', 0, 90+10+fonts[3]:getHeight(), love.graphics.getWidth(), 'center')
+  love.graphics.printf('Press M1 to start', 0, (1-tween)*(90+10+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
 
   if pause and not love.keyboard.isDown('tab') then
     rendering:renderPause()
