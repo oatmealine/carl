@@ -17,7 +17,9 @@ this.renderWorld = function(camera)
     love.graphics.circle("line", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
 
     love.graphics.setColor(1,1,1)
-    love.graphics.draw(eyes, objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1), objects.ball.body:getY()-objects.ball.shape:getRadius(), 0, (objects.ball.shape:getRadius()*2)/eyes:getWidth() * (carlflipped and 1 or -1), (objects.ball.shape:getRadius()*2)/eyes:getHeight())
+    if not seedebug then
+      love.graphics.draw(eyes, objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1), objects.ball.body:getY()-objects.ball.shape:getRadius(), 0, (objects.ball.shape:getRadius()*2)/eyes:getWidth() * (carlflipped and 1 or -1), (objects.ball.shape:getRadius()*2)/eyes:getHeight())
+    end
   else
     eyes = sprites["carleyescry"]
     local yoff = ease.outQuad(love.timer.getTime()-recentdeath, 0, 1, 0.6)*200
@@ -147,8 +149,40 @@ this.renderUI = function()
     love.graphics.rectangle('line', -2, -5-carlschut-9, 4, 9)
     love.graphics.pop()
   end
-  
-  love.graphics.print('x '..objects.ball.body:getX()..'\ny '..objects.ball.body:getY())
+
+  if seedebug then
+    local carlx, carly = worldcam:cameraCoords(objects.ball.body:getX(), objects.ball.body:getY())
+    local velx, vely = objects.ball.body:getLinearVelocity()
+
+    local xarrow = math.max(math.min(carlx+velx/2, carlx+100), carlx-100)
+    local yarrow = math.max(math.min(carly+vely/2, carly+100), carly-100)
+
+    local xarrowoff = (velx > 0) and 10 or -10
+    local yarrowoff = (vely > 0) and 10 or -10
+
+    love.graphics.setColor(1,0,0)
+    love.graphics.line(carlx, carly, xarrow, carly)
+    love.graphics.polygon('fill', {
+      xarrow, carly+10,
+      xarrow+xarrowoff, carly,
+      xarrow, carly-10
+    })
+
+    love.graphics.setColor(0,1,0)
+    love.graphics.line(carlx, carly, carlx, yarrow)
+    love.graphics.polygon('fill', {
+      carlx+10, yarrow,
+      carlx, yarrow+yarrowoff,
+      carlx-10, yarrow
+    })
+
+    love.graphics.setColor(1,1,1)
+    love.graphics.print(math.floor(velx), xarrow, carly)
+    love.graphics.print(math.floor(vely), carlx, yarrow)
+
+    love.graphics.setColor(0,0,0)
+    love.graphics.print('x '..objects.ball.body:getX()..'\ny '..objects.ball.body:getY())
+  end
 end
 
 function freshparticle()

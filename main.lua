@@ -16,6 +16,8 @@ sprites = {}
 fonts = {}
 sounds = {}
 
+seedebug = false
+
 carlschut = 0
 carlschutorigin = {0,0}
 carlschutloc = {0,0}
@@ -278,7 +280,7 @@ function love.update(dt)
     playSound('shotgun_cock', 1.0)
   end
 
-  if love.mouse.isDown(1) and carlschut < 10 then
+  if love.mouse.isDown(1) and carlschut < 10 and not carldead then
     local gunwidth = objects.ball.shape:getRadius()*3
     local mx,my = worldcam:mousePosition()
     local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
@@ -290,6 +292,8 @@ function love.update(dt)
     if ontitlescreen then
       ontitlescreen = false
       titlescreentweenstart = gametime
+    else
+      objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*1500, math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*2000)
     end
 
     playSound('shotgun_fire'..math.random(1,2), 1.0)
@@ -356,7 +360,9 @@ end
 function love.keypressed(key)
   if key == 'r' and not carldead and not ontitlescreen then
     killcarl()
-  elseif key == 'escape' and not ontitlescreen then
+  elseif key == 'f3' then
+    seedebug = not seedebug
+  elseif key == 'escape' and  not ontitlescreen then
     pause = not pause
     recentpause = love.timer.getTime()
   end
