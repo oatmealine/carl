@@ -182,6 +182,17 @@ this.renderUI = function()
 
     love.graphics.setColor(0,0,0)
     love.graphics.print('x '..objects.ball.body:getX()..'\ny '..objects.ball.body:getY())
+  else
+    local i
+    for i = 1, 5 do
+      local bullet = sprites['bullet' .. (i <= carlammo and '' or 'empty')]
+      local color = (i <= carlammo and 1 or 0.5)
+
+      if carlammo <= 0 then color = 0.1 end
+
+      love.graphics.setColor(color,color,color)
+      love.graphics.draw(bullet, bullet:getWidth() * 3.5 * i - bullet:getWidth()*3.0, 3, 0, 3, 3)
+    end
   end
 end
 

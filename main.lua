@@ -1,3 +1,6 @@
+-- change this to true when presenting (for school project)
+demo = false
+
 camera = require 'lib.camera'
 gamestate = require 'lib.gamestate'
 signal = require 'lib.signal'
@@ -21,6 +24,8 @@ seedebug = false
 carlschut = 0
 carlschutorigin = {0,0}
 carlschutloc = {0,0}
+
+carlammo = 5
 
 carlcanjump = false
 
@@ -224,6 +229,7 @@ function love.load()
 
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
   love.window.setMode(1200, 800)
+  love.graphics.setDefaultFilter('nearest','nearest', 2)
 end
 
 
@@ -275,20 +281,24 @@ function love.update(dt)
     killcarl()
   end
 
-  if carlschut < 10 and not madecocksfx then
+  if carlschut < 5 and not madecocksfx then
     madecocksfx = true
+    carlammo = 5
     playSound('shotgun_cock', 1.0)
   end
 
-  if love.mouse.isDown(1) and carlschut < 10 and not carldead then
+  if love.mouse.isDown(1) and carlschut < 10 and not carldead and carlammo > 0 then
     local gunwidth = objects.ball.shape:getRadius()*3
     local mx,my = worldcam:mousePosition()
     local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
     carlschutorigin = {objects.ball.body:getX()+math.cos(carlrot)*gunwidth, objects.ball.body:getY()+math.sin(carlrot)*gunwidth}
     carlschutloc = {mx+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50), my+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50)}
 
-    carlschut = 40
-    madecocksfx = false
+    carlschut = 40 + carlschut / 4
+    carlammo = carlammo - 1
+
+    if madecocksfx then madecocksfx = false end
+
     if ontitlescreen then
       ontitlescreen = false
       titlescreentweenstart = gametime
@@ -297,6 +307,10 @@ function love.update(dt)
     end
 
     playSound('shotgun_fire'..math.random(1,2), 1.0)
+  elseif carlammo == 0 then
+    carlammo = -1
+    carlschut = 60
+    madecocksfx = false
   end
 
   if carlschut > 0 then 
@@ -340,11 +354,11 @@ function love.draw()
   local tween = ease.inOutSine(gametime-titlescreentweenstart, 0, 1, 2)
   for _,o in ipairs({{0,1},{1,0},{1,1},{1,-1}}) do
     love.graphics.setColor(0,0,0,1-tween)
-    love.graphics.printf('Carl', 0+o[1], 90+o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
-    love.graphics.printf('Carl', 0-o[1], 90-o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
+    love.graphics.printf(demo and 'Колобок' or 'Carl', 0+o[1], 90+o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
+    love.graphics.printf(demo and 'Колобок' or 'Carl', 0-o[1], 90-o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
   end
   love.graphics.setColor(1,1,1,1-tween)
-  love.graphics.printf('Carl', 0, 90-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
+  love.graphics.printf(demo and 'Колобок' or 'Carl', 0, 90-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
 
   love.graphics.setFont(fonts[1])
   love.graphics.printf('Press M1 to start', 0, (1-tween)*(90+10+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')

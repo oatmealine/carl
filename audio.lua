@@ -21,8 +21,6 @@ function registerSound(sound, volume)
 end
 
 function playSound(sound, volume, pitch)
-  if doing_past_turns and not do_past_effects then return end
-
   if sounds[sound] then
     if not sound_instances[sound] then
       sound_instances[sound] = 0
