@@ -27,6 +27,8 @@ carlschutloc = {0,0}
 
 carlammo = 5
 
+carlblink = 0
+
 carlcanjump = false
 
 carldead = false
@@ -252,6 +254,10 @@ function love.update(dt)
     math.min(objects.ball.body:getY() + (love.mouse.getY()-love.graphics.getHeight())/(love.graphics.getHeight()/2)*20, 800))
   end
 
+  if (love.keyboard.isDown('d') or love.keyboard.isDown('a') or love.keyboard.isDown('w') or love.mouse.isDown(1) or love.mouse.isDown(2)) and carlblink%180 <= 170 then
+    carlblink = 0
+  end
+
   if love.keyboard.isDown("d") and not ontitlescreen then
     objects.ball.body:applyForce(400, 0)
   elseif love.keyboard.isDown("a") and not ontitlescreen then
@@ -322,6 +328,7 @@ end
 
 function love.draw()
   love.graphics.setFont(fonts[1])
+  if not pause then carlblink = carlblink + 1 end
   worldcam:attach()
 
   love.graphics.push()

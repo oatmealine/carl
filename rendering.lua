@@ -7,7 +7,12 @@ this.renderWorld = function(camera)
   local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
   local carlflipped = math.abs(carlrot) < math.pi/2
 
-  local eyes = sprites["carleyes"]
+  local eyes = sprites['carleyes']
+
+  if carlblink%130>120 then
+    local frames = {'tired', 'tired', 'tired', 'blink', 'blink', 'blink', 'tired', 'tired', ''}
+    eyes = sprites['carleyes' .. frames[carlblink%180-170]]
+  end
 
   if not carldead then
     love.graphics.setColor(1, 198/255, 13/255)
