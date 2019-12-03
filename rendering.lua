@@ -2,6 +2,30 @@ local this = {}
 local particles = {}
 
 this.renderWorld = function(camera)
+  -- grid
+  local i
+  if seedebug then
+    love.graphics.setLineWidth(1)
+
+    local x,y = camera:worldCoords(0,0)
+    local x2,y2 = camera:worldCoords(love.graphics.getWidth(),love.graphics.getHeight())
+
+    for i = -800, 1000 do
+      love.graphics.setColor(1,1,1,0.7)
+      love.graphics.line(i*12, y, i*12, y2)
+    end
+
+    for i = 0, 1200 do
+      love.graphics.setColor(1,1,1,0.7)
+      love.graphics.line(x, i*12, x2, i*12)
+    end
+
+    love.graphics.setColor(1,1,1,0.8)
+    love.graphics.setLineWidth(4)
+    love.graphics.line(0, y, 0, y2)
+    love.graphics.line(x, 0, x2, 0)
+  end
+
   -- carl
   local mx, my = camera:worldCoords(aimpos[1], aimpos[2])
   local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
@@ -11,8 +35,10 @@ this.renderWorld = function(camera)
 
   if carlblink%130>120 then
     local frames = {'tired', 'tired', 'tired', 'blink', 'blink', 'blink', 'tired', 'tired', ''}
-    eyes = sprites['carleyes' .. frames[carlblink%180-170]]
+    eyes = sprites['carleyes' .. frames[carlblink%130-120]]
   end
+
+  love.graphics.setLineWidth(1)
 
   if not carldead then
     love.graphics.setColor(1, 198/255, 13/255)
@@ -27,7 +53,7 @@ this.renderWorld = function(camera)
     end
   else
     eyes = sprites["carleyescry"]
-    local yoff = ease.outQuad(love.timer.getTime()-recentdeath, 0, 1, 0.6)*200
+    local yoff = ease.outQuad(gametime-recentdeath, 0, 1, 0.6)*200
 
     love.graphics.push()
 
@@ -58,17 +84,12 @@ this.renderWorld = function(camera)
   end
 
   -- grounde
-  for _,g in ipairs(objects.dirt) do
-    love.graphics.setColor(156/255, 83/255, 0)
-    love.graphics.polygon("fill", g.body:getWorldPoints(g.shape:getPoints()))
-    love.graphics.setColor(207/255, 110/255, 0)
-    love.graphics.polygon("line", g.body:getWorldPoints(g.shape:getPoints()))
-  end
-
   for _,g in ipairs(objects.grounds) do
-    love.graphics.setColor(0.28, 0.63, 0.05)
+    local data = g.body:getUserData()
+
+    love.graphics.setColor(data.color)
     love.graphics.polygon("fill", g.body:getWorldPoints(g.shape:getPoints()))
-    love.graphics.setColor(0.14, 0.31, 0.02)
+    love.graphics.setColor(table.add(data.color, -0.3))
     love.graphics.polygon("line", g.body:getWorldPoints(g.shape:getPoints()))
   end
 

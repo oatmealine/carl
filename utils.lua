@@ -14,3 +14,11 @@ end
 function string.ends(str, ending)
   return ending == "" or str:sub(-#ending) == ending
 end
+
+function table.add(table, num)
+  local new = {}
+  for i,v in ipairs(table) do
+    new[i] = v + num
+  end
+  return new
+end

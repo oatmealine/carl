@@ -1,16 +1,15 @@
--- change this to true when presenting (for school project)
-demo = false
-
 camera = require 'lib.camera'
 gamestate = require 'lib.gamestate'
 signal = require 'lib.signal'
 gametimer = require 'lib.timer'
 timer = require 'lib.timer copy' -- lua is stupid so i have to do this
 ease = require 'lib.easing'
+json = require 'lib.json'
 
 rendering = require 'rendering'
 require 'utils'
 require 'audio'
+require 'vals'
 
 worldcam = camera()
 worldcam.smoother = camera.smooth.damped(15)
@@ -49,6 +48,16 @@ titlescreentweenstart = -90
 
 madecocksfx = true
 
+-- temp
+level = json.decode(love.filesystem.read('level.json'))
+
+-- world/level stuff
+world = love.physics.newWorld(0, 0, false)
+objects = {}
+objects.grounds = {}
+objects.dirt = {}
+objects.ball = {}
+
 -- main menu stuff
 buttons = {'resume', 'reset', 'exit'}
 buttonactions = {function()
@@ -66,21 +75,99 @@ mouseonbutton = false
 function killcarl()
   if carldead then return end
   carldead = true
-  recentdeath = love.timer.getTime()
+  recentdeath = gametime
 
   local keepx = objects.ball.body:getX()
   local keepy = objects.ball.body:getY()
 
   playSound('carlcry'..math.random(1,5))
 
+  madecocksfx = true
+  carlschut = 0
+
   gametimer.during(0.6, function()
     objects.ball.body:setPosition(keepx, keepy)
     objects.ball.body:setLinearVelocity(0, 0)
   end, function()
     carldead = false
+    madecocksfx = false
+    carlschut = 20
     objects.ball.body:setPosition(carlcheck[1], carlcheck[2])
     objects.ball.body:setLinearVelocity(0, 0.1)
   end)
+end
+
+function loadMap(lvl)
+  local wrd = love.physics.newWorld(0, GRAVITY, true)
+
+  for _,obj in ipairs(lvl.grass) do
+    local body = love.physics.newBody(wrd, obj.x, obj.y)
+    local shape
+    local fixture
+
+    if obj.type == 'rectangle' then
+      shape = love.physics.newRectangleShape(obj.width, obj.height)
+    else --unimplemented
+    end
+
+    fixture = love.physics.newFixture(body, shape)
+    fixture:setFriction(0.5)
+    body:setUserData(obj)
+
+    table.insert(objects.grounds, {
+      body = body, shape = shape, fixture = fixture
+    })
+  end
+  
+  --[[
+  local body = love.physics.newBody(world, -480, 800-50/2 + 560/2 + 10)
+  local shape  = love.physics.newRectangleShape(2340, 560)
+  table.insert(objects.dirt, {
+  body = body, shape = shape,
+  fixture = love.physics.newFixture(body, shape)})
+
+  for _,obj in ipairs(objects.dirt) do
+    obj.fixture:setFriction(0.4)
+    obj.fixture:setUserData('dirt')
+  end
+  ]]
+
+  
+  objects.ball.body = love.physics.newBody(wrd, lvl.spawnloc[1], lvl.spawnloc[2], "dynamic")
+  objects.ball.shape = love.physics.newCircleShape(25)
+  objects.ball.fixture = love.physics.newFixture(objects.ball.body, objects.ball.shape, 1)
+  objects.ball.fixture:setRestitution(0.03)
+  objects.ball.fixture:setFriction(0.1)
+  objects.ball.body:setFixedRotation(true)
+
+  local function checkcarlcoll(func)
+    return function(fixture1, fixture2, coll)
+      local hascarl = false
+      local hasground = false
+
+      for _,f in ipairs(objects.ball.body:getFixtures()) do
+        if f == fixture1 or f == fixture2 then
+          hascarl = true
+        end
+      end
+
+      for _,g in ipairs(objects.grounds) do
+        for _,f in ipairs(g.body:getFixtures()) do
+          if f == fixture1 or f == fixture2 then
+            hasground = true
+          end
+        end
+      end
+
+      if hascarl and hasground then
+        func(coll)
+      end
+    end
+  end
+
+  wrd:setCallbacks(checkcarlcoll(function() carlcanjump = true end), checkcarlcoll(function() carlcanjump = false end))
+
+  return wrd
 end
 
 function love.load()
@@ -150,71 +237,7 @@ function love.load()
   end
 
   love.physics.setMeter(64)
-  world = love.physics.newWorld(0, 9.81*64, true)
-
-  objects = {}
-
-  objects.grounds = {}
-
-  local body = love.physics.newBody(world, -500, 800-50/2)
-  local shape  = love.physics.newRectangleShape(2400, 70)
-  table.insert(objects.grounds, {
-  body = body, shape = shape,
-  fixture = love.physics.newFixture(body, shape)})
-
-  for _,obj in ipairs(objects.grounds) do
-    obj.fixture:setFriction(0.5)
-    obj.fixture:setUserData('grass')
-  end
-
-  objects.dirt = {}
-  
-  local body = love.physics.newBody(world, -480, 800-50/2 + 560/2 + 10)
-  local shape  = love.physics.newRectangleShape(2340, 560)
-  table.insert(objects.dirt, {
-  body = body, shape = shape,
-  fixture = love.physics.newFixture(body, shape)})
-
-  for _,obj in ipairs(objects.dirt) do
-    obj.fixture:setFriction(0.4)
-    obj.fixture:setUserData('dirt')
-  end
-
-  objects.ball = {}
-  objects.ball.body = love.physics.newBody(world, carlcheck[1], carlcheck[2], "dynamic")
-  objects.ball.shape = love.physics.newCircleShape(25)
-  objects.ball.fixture = love.physics.newFixture(objects.ball.body, objects.ball.shape, 1)
-  objects.ball.fixture:setRestitution(0.03)
-  objects.ball.fixture:setFriction(0.1)
-  objects.ball.body:setFixedRotation(true)
-  objects.ball.fixture:setUserData('carl')
-
-  local function checkcarlcoll(func)
-    return function(fixture1, fixture2, coll)
-      local hascarl = false
-      local hasground = false
-
-      for _,f in ipairs(objects.ball.body:getFixtures()) do
-        if f == fixture1 or f == fixture2 then
-          hascarl = true
-        end
-      end
-
-      for _,g in ipairs(objects.grounds) do
-        for _,f in ipairs(g.body:getFixtures()) do
-          if f == fixture1 or f == fixture2 then
-            hasground = true
-          end
-        end
-      end
-
-      if hascarl and hasground then
-        func(coll)
-      end
-    end
-  end
-
-  world:setCallbacks(checkcarlcoll(function() carlcanjump = true end), checkcarlcoll(function() carlcanjump = false end))
+  world = loadMap(level)
 
   --[[
     fonts:
@@ -226,7 +249,7 @@ function love.load()
   fonts = {
     love.graphics.newFont(12),
     love.graphics.newFont(24),
-    love.graphics.newFont('assets/fonts/KaushanScript-Regular.ttf', 128)
+    love.graphics.newFont(demo and 'assets/fonts/AndantinoScript.ttf' or 'assets/fonts/KaushanScript-Regular.ttf', 128)
   }
 
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
@@ -259,13 +282,13 @@ function love.update(dt)
   end
 
   if love.keyboard.isDown("d") and not ontitlescreen then
-    objects.ball.body:applyForce(400, 0)
+    objects.ball.body:applyForce(MOVEFORCE, 0)
   elseif love.keyboard.isDown("a") and not ontitlescreen then
-    objects.ball.body:applyForce(-400, 0)
+    objects.ball.body:applyForce(-MOVEFORCE, 0)
   end
 
   if love.keyboard.isDown("w") and carlcanjump and not ontitlescreen then
-    objects.ball.body:applyForce(0, -12000)
+    objects.ball.body:applyForce(0, -JUMPFORCE)
     carlcanjump = false
   end
 
@@ -334,10 +357,8 @@ function love.draw()
   love.graphics.push()
 
   -- janky solution time
-  love.graphics.translate(love.graphics.getWidth()/2, love.graphics.getHeight()/2)
-  love.graphics.rotate(ease.outExpo(love.timer.getTime() - recentpause, pause and 0 or 0.2, 0.2 * (pause and 1 or -1), 0.4))
-  love.graphics.scale(ease.outExpo(love.timer.getTime() - recentpause, pause and 1 or 1.2, 0.2 * (pause and 1 or -1), 0.35))
-  love.graphics.translate(-love.graphics.getWidth()/2, -love.graphics.getHeight()/2)
+  worldcam:rotateTo(ease.outExpo(love.timer.getTime() - recentpause, pause and 0 or 0.2, 0.2 * (pause and 1 or -1), 0.4))
+  worldcam:zoomTo(ease.outExpo(love.timer.getTime() - recentpause, pause and 1 or 1.2, 0.2 * (pause and 1 or -1), 0.35))
 
   rendering.renderWorld(worldcam)
 
@@ -381,6 +402,8 @@ end
 function love.keypressed(key)
   if key == 'r' and not carldead and not ontitlescreen then
     killcarl()
+  elseif key == 'f5' then
+    world = loadMap(level)
   elseif key == 'f3' then
     seedebug = not seedebug
   elseif key == 'escape' and  not ontitlescreen then
