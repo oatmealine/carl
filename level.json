@@ -7,7 +7,39 @@
       "width": 2400,
       "height": 70,
       "color": [0.28, 0.63, 0.05]
+    },
+    {
+      "type": "polygon",
+      "x": 400,
+      "y": 450,
+      "vertices": [[-150, 0], [0, 30], [150, 0]],
+      "color": [1, 1, 0]
+    },
+    {
+      "type": "polygon",
+      "x": 200,
+      "y": 350,
+      "vertices": [[-150, 0], [0, 30], [150, 0]],
+      "color": [1, 1, 0]
+    },
+    {
+      "type": "polygon",
+      "x": 0,
+      "y": 250,
+      "vertices": [[-150, 0], [0, 30], [150, 0]],
+      "color": [1, 1, 0]
+    },
+    {
+      "type": "circle",
+      "x": 0,
+      "y": 0,
+      "radius": 50,
+      "color": [1, 0, 1],
+      "dynamic": true
     }
   ],
-  "spawnloc": [400, 400]
+  "properties": {
+    "sky": "normal",
+    "spawnloc": [400, 400]
+  }
 }

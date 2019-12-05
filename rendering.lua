@@ -87,10 +87,18 @@ this.renderWorld = function(camera)
   for _,g in ipairs(objects.grounds) do
     local data = g.body:getUserData()
 
-    love.graphics.setColor(data.color)
-    love.graphics.polygon("fill", g.body:getWorldPoints(g.shape:getPoints()))
-    love.graphics.setColor(table.add(data.color, -0.3))
-    love.graphics.polygon("line", g.body:getWorldPoints(g.shape:getPoints()))
+    if data.type == "circle" then
+      local x,y = g.body:getPosition()
+      love.graphics.setColor(data.color)
+      love.graphics.circle('fill', x, y, g.shape:getRadius())
+      love.graphics.setColor(table.add(data.color, -0.3))
+      love.graphics.circle('line', x, y, g.shape:getRadius())
+    else
+      love.graphics.setColor(data.color)
+      love.graphics.polygon("fill", g.body:getWorldPoints(g.shape:getPoints()))
+      love.graphics.setColor(table.add(data.color, -0.3))
+      love.graphics.polygon("line", g.body:getWorldPoints(g.shape:getPoints()))
+    end
   end
 
   -- drawing gun and the bullet (???)
@@ -100,7 +108,22 @@ this.renderWorld = function(camera)
   local gunshotdistance = {carlschutorigin[1]-carlschutloc[1], carlschutorigin[2]-carlschutloc[2]}
 
   love.graphics.setColor(1,1,1,carlschut/40)
-  love.graphics.line(carlschutorigin[1], carlschutorigin[2], carlschutloc[1]-(gunshotdistance[1]*math.abs(love.graphics.getWidth()*2/(gunshotdistance[1]+gunshotdistance[2]))), carlschutloc[2]-(gunshotdistance[2]*math.abs(love.graphics.getWidth()*2/(gunshotdistance[1]+gunshotdistance[2])))) -- this code sucks
+  if carlschut > 0 and carlschutorigin ~= carlschutloc then
+    local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
+    carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
+
+    local colls = {}
+
+    world:rayCast(carlschutorigin[1], carlschutorigin[2], multipliedloc[1], multipliedloc[2], function(_, x, y)
+      table.insert(colls, {x, y})
+      return 1
+    end)
+
+    local lowestdist = {99999, 1}
+    for _,v in ipairs(colls) do
+      
+    end
+  end
 
   love.graphics.setColor(1,1,1)
   if not carldead then

@@ -98,16 +98,32 @@ function killcarl()
 end
 
 function loadMap(lvl)
+  objects = {}
+  objects.grounds = {}
+  objects.dirt = {}
+  objects.ball = {}
+
   local wrd = love.physics.newWorld(0, GRAVITY, true)
 
   for _,obj in ipairs(lvl.grass) do
-    local body = love.physics.newBody(wrd, obj.x, obj.y)
+    local body = love.physics.newBody(wrd, obj.x, obj.y, obj.dynamic and "dynamic" or "static")
     local shape
     local fixture
 
     if obj.type == 'rectangle' then
       shape = love.physics.newRectangleShape(obj.width, obj.height)
-    else --unimplemented
+    elseif obj.type == 'polygon' then
+      local vertices = {}
+      for _,v in ipairs(obj.vertices) do
+        table.insert(vertices, v[1])
+        table.insert(vertices, v[2])
+      end
+
+      shape = love.physics.newPolygonShape(vertices)
+    elseif obj.type == 'circle' then
+      shape = love.physics.newCircleShape(obj.radius)
+    else
+      error("invalid object type (must be rectangle, polygon or circle)")
     end
 
     fixture = love.physics.newFixture(body, shape)
@@ -133,7 +149,7 @@ function loadMap(lvl)
   ]]
 
   
-  objects.ball.body = love.physics.newBody(wrd, lvl.spawnloc[1], lvl.spawnloc[2], "dynamic")
+  objects.ball.body = love.physics.newBody(wrd, lvl.properties.spawnloc[1], lvl.properties.spawnloc[2], "dynamic")
   objects.ball.shape = love.physics.newCircleShape(25)
   objects.ball.fixture = love.physics.newFixture(objects.ball.body, objects.ball.shape, 1)
   objects.ball.fixture:setRestitution(0.03)
@@ -153,7 +169,7 @@ function loadMap(lvl)
 
       for _,g in ipairs(objects.grounds) do
         for _,f in ipairs(g.body:getFixtures()) do
-          if f == fixture1 or f == fixture2 then
+          if (f == fixture1 or f == fixture2) and f:getBody():getType() == "static" then
             hasground = true
           end
         end
@@ -165,7 +181,7 @@ function loadMap(lvl)
     end
   end
 
-  wrd:setCallbacks(checkcarlcoll(function() carlcanjump = true end), checkcarlcoll(function() carlcanjump = false end))
+  wrd:setCallbacks(checkcarlcoll(function() carlcanjump = true end))
 
   return wrd
 end
@@ -237,6 +253,7 @@ function love.load()
   end
 
   love.physics.setMeter(64)
+  world:destroy()
   world = loadMap(level)
 
   --[[
@@ -333,6 +350,19 @@ function love.update(dt)
       titlescreentweenstart = gametime
     else
       objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*1500, math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*2000)
+      world:rayCast(carlschutorigin[1], carlschutorigin[2], carlschutloc[1], carlschutloc[2], function(fix)
+        local body = fix:getBody()
+
+        local xforce = math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*-1000
+        local yforce = math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*-1000
+
+        if body:getType() == "dynamic" then
+          body:applyForce(xforce, yforce)
+          return 0
+        else
+          return 0
+        end
+      end)
     end
 
     playSound('shotgun_fire'..math.random(1,2), 1.0)
@@ -403,7 +433,8 @@ function love.keypressed(key)
   if key == 'r' and not carldead and not ontitlescreen then
     killcarl()
   elseif key == 'f5' then
-    world = loadMap(level)
+    world:destroy()
+    world = loadMap(json.decode(love.filesystem.read('level.json')))
   elseif key == 'f3' then
     seedebug = not seedebug
   elseif key == 'escape' and  not ontitlescreen then
