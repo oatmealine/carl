@@ -1,6 +1,9 @@
 local this = {}
 local particles = {}
 
+local irisxoff = 0
+local irisyoff = 0
+
 this.renderWorld = function(camera)
   -- grid
   local i
@@ -57,8 +60,10 @@ this.renderWorld = function(camera)
       if eyes == sprites['carleyes'] then
         local camx, camy = worldcam:cameraCoords(objects.ball.body:getX(), objects.ball.body:getY())
 
-        local irisxoff = math.max(math.min((camx/40 - love.mouse.getX()/40), 2), -2)*-1
-        local irisyoff = math.max(math.min((camy/40 - love.mouse.getY()/40), 2), -2)*-1.8
+        if not pause then
+          irisxoff = math.max(math.min((camx/40 - love.mouse.getX()/40), 2), -2)*-1
+          irisyoff = math.max(math.min((camy/40 - love.mouse.getY()/40), 2), -2)*-1.8
+        end
 
         love.graphics.draw(sprites['carleyesempty'], eyex, eyey, 0, eyescalex, eyescaley)
         love.graphics.draw(sprites['carleyesiris'], eyex+irisxoff, eyey+irisyoff, 0, eyescalex, eyescaley)
