@@ -49,7 +49,22 @@ this.renderWorld = function(camera)
 
     love.graphics.setColor(1,1,1)
     if not seedebug then
-      love.graphics.draw(eyes, objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1), objects.ball.body:getY()-objects.ball.shape:getRadius(), 0, (objects.ball.shape:getRadius()*2)/eyes:getWidth() * (carlflipped and 1 or -1), (objects.ball.shape:getRadius()*2)/eyes:getHeight())
+      local eyex = objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1)
+      local eyey = objects.ball.body:getY()-objects.ball.shape:getRadius()
+      local eyescalex = (objects.ball.shape:getRadius()*2)/eyes:getWidth() * (carlflipped and 1 or -1)
+      local eyescaley = (objects.ball.shape:getRadius()*2)/eyes:getHeight()
+
+      if eyes == sprites['carleyes'] then
+        local camx, camy = worldcam:cameraCoords(objects.ball.body:getX(), objects.ball.body:getY())
+
+        local irisxoff = math.max(math.min((camx/40 - love.mouse.getX()/40), 2), -2)*-1
+        local irisyoff = math.max(math.min((camy/40 - love.mouse.getY()/40), 2), -2)*-1.8
+
+        love.graphics.draw(sprites['carleyesempty'], eyex, eyey, 0, eyescalex, eyescaley)
+        love.graphics.draw(sprites['carleyesiris'], eyex+irisxoff, eyey+irisyoff, 0, eyescalex, eyescaley)
+      else
+        love.graphics.draw(eyes, eyex, eyey, 0, eyescalex, eyescaley)
+      end
     end
   else
     eyes = sprites["carleyescry"]
