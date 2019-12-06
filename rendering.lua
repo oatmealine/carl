@@ -36,7 +36,9 @@ this.renderWorld = function(camera)
 
   local eyes = sprites['carleyes']
 
-  if carlblink%130>120 then
+  if carlblink > 510 then
+    eyes = sprites['carleyes' .. (carlblink > 640 and 'blink' or 'tired')]
+  elseif carlblink%130>120 then
     local frames = {'tired', 'tired', 'tired', 'blink', 'blink', 'blink', 'tired', 'tired', ''}
     eyes = sprites['carleyes' .. frames[carlblink%130-120]]
   end
