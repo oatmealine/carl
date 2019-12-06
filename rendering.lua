@@ -127,17 +127,19 @@ this.renderWorld = function(camera)
     local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
     carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
 
-    local colls = {}
+    local lowestdist = {nil, {multipliedloc[1], multipliedloc[2]}}
 
     world:rayCast(carlschutorigin[1], carlschutorigin[2], multipliedloc[1], multipliedloc[2], function(_, x, y)
-      table.insert(colls, {x, y})
+      local dist = math.abs(carlschutorigin[1] - x) + math.abs(carlschutorigin[2] - y)
+
+      if lowestdist[1] == nil or dist < lowestdist[1] then
+        lowestdist = {dist, {x, y}}
+      end
+
       return 1
     end)
 
-    local lowestdist = {99999, 1}
-    for _,v in ipairs(colls) do
-      
-    end
+    love.graphics.line(carlschutorigin[1], carlschutorigin[2], lowestdist[2][1], lowestdist[2][2])
   end
 
   love.graphics.setColor(1,1,1)

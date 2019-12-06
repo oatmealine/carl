@@ -350,19 +350,32 @@ function love.update(dt)
       titlescreentweenstart = gametime
     else
       objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*1500, math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*2000)
-      world:rayCast(carlschutorigin[1], carlschutorigin[2], carlschutloc[1], carlschutloc[2], function(fix)
-        local body = fix:getBody()
+      
+      local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
+      carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
 
-        local xforce = math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*-1000
-        local yforce = math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*-1000
+      local lowestdist = {nil, nil}
+
+      world:rayCast(carlschutorigin[1], carlschutorigin[2], multipliedloc[1], multipliedloc[2], function(fix, x, y)
+        local dist = math.abs(carlschutorigin[1] - x) + math.abs(carlschutorigin[2] - y)
+
+        if lowestdist[1] == nil or dist < lowestdist[1] then
+          lowestdist = {dist, fix}
+        end
+
+        return 1
+      end)
+
+      if lowestdist[2] ~= nil then
+        local body = lowestdist[2]:getBody()
+
+        local xforce = math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*-1500
+        local yforce = math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*-1500
 
         if body:getType() == "dynamic" then
           body:applyForce(xforce, yforce)
-          return 0
-        else
-          return 0
         end
-      end)
+      end
     end
 
     playSound('shotgun_fire'..math.random(1,2), 1.0)
