@@ -20,6 +20,8 @@ sounds = {}
 
 seedebug = false
 
+ineditor = false
+
 carlschut = 0
 carlschutorigin = {0,0}
 carlschutloc = {0,0}
@@ -47,6 +49,8 @@ ontitlescreen = true
 titlescreentweenstart = -90
 
 madecocksfx = true
+
+local zoom = 0
 
 -- temp
 level = json.decode(love.filesystem.read('level.json'))
@@ -128,60 +132,51 @@ function loadMap(lvl)
 
     fixture = love.physics.newFixture(body, shape)
     fixture:setFriction(0.5)
+    fixture:setMask(2)
     body:setUserData(obj)
 
     table.insert(objects.grounds, {
       body = body, shape = shape, fixture = fixture
     })
   end
-  
-  --[[
-  local body = love.physics.newBody(world, -480, 800-50/2 + 560/2 + 10)
-  local shape  = love.physics.newRectangleShape(2340, 560)
-  table.insert(objects.dirt, {
-  body = body, shape = shape,
-  fixture = love.physics.newFixture(body, shape)})
 
-  for _,obj in ipairs(objects.dirt) do
-    obj.fixture:setFriction(0.4)
-    obj.fixture:setUserData('dirt')
-  end
-  ]]
-
-  
-  objects.ball.body = love.physics.newBody(wrd, lvl.properties.spawnloc[1], lvl.properties.spawnloc[2], "dynamic")
+  objects.ball.body = love.physics.newBody(wrd, lvl.properties.spawnloc[1], lvl.properties.spawnloc[2], ineditor and "static" or "dynamic")
   objects.ball.shape = love.physics.newCircleShape(25)
   objects.ball.fixture = love.physics.newFixture(objects.ball.body, objects.ball.shape, 1)
   objects.ball.fixture:setRestitution(0.03)
   objects.ball.fixture:setFriction(0.1)
   objects.ball.body:setFixedRotation(true)
 
-  local function checkcarlcoll(func)
-    return function(fixture1, fixture2, coll)
-      local hascarl = false
-      local hasground = false
+  if not ineditor then
+    local function checkcarlcoll(func)
+      return function(fixture1, fixture2, coll)
+        local hascarl = false
+        local hasground = false
 
-      for _,f in ipairs(objects.ball.body:getFixtures()) do
-        if f == fixture1 or f == fixture2 then
-          hascarl = true
-        end
-      end
-
-      for _,g in ipairs(objects.grounds) do
-        for _,f in ipairs(g.body:getFixtures()) do
-          if (f == fixture1 or f == fixture2) and f:getBody():getType() == "static" then
-            hasground = true
+        for _,f in ipairs(objects.ball.body:getFixtures()) do
+          if f == fixture1 or f == fixture2 then
+            hascarl = true
           end
         end
-      end
 
-      if hascarl and hasground then
-        func(coll)
+        for _,g in ipairs(objects.grounds) do
+          for _,f in ipairs(g.body:getFixtures()) do
+            if (f == fixture1 or f == fixture2) and f:getBody():getType() == "static" then
+              hasground = true
+            end
+          end
+        end
+
+        if hascarl and hasground then
+          func(coll)
+        end
       end
     end
-  end
 
-  wrd:setCallbacks(checkcarlcoll(function() carlcanjump = true end))
+    wrd:setCallbacks(checkcarlcoll(function() carlcanjump = true end))
+  else
+    objects.ball.fixture:setCategory(2)
+  end
 
   return wrd
 end
@@ -277,7 +272,7 @@ end
 
 function love.update(dt)
   timer.update(dt)
-  love.mouse.setVisible(pause)
+  love.mouse.setVisible(pause or ineditor)
 
   if pause then return end
   gametimer.update(dt)
@@ -299,17 +294,37 @@ function love.update(dt)
   end
 
   if love.keyboard.isDown("d") and not ontitlescreen then
-    objects.ball.body:applyForce(MOVEFORCE, 0)
+    if ineditor then
+      local x,y = objects.ball.body:getPosition()
+      objects.ball.body:setPosition(x + dt * 1000, y)
+    else
+      objects.ball.body:applyForce(MOVEFORCE, 0)
+    end
   elseif love.keyboard.isDown("a") and not ontitlescreen then
-    objects.ball.body:applyForce(-MOVEFORCE, 0)
+    if ineditor then
+      local x,y = objects.ball.body:getPosition()
+      objects.ball.body:setPosition(x - dt * 1000, y)
+    else
+      objects.ball.body:applyForce(-MOVEFORCE, 0)
+    end
   end
 
   if love.keyboard.isDown("w") and carlcanjump and not ontitlescreen then
-    objects.ball.body:applyForce(0, -JUMPFORCE)
-    carlcanjump = false
+    if ineditor then
+      local x,y = objects.ball.body:getPosition()
+      objects.ball.body:setPosition(x, y - dt*1000)
+    else
+      objects.ball.body:applyForce(0, -JUMPFORCE)
+      carlcanjump = false
+    end
   end
 
-  if love.mouse.isDown(2) and not ontitlescreen then
+  if love.keyboard.isDown("s") and ineditor then
+    local x,y = objects.ball.body:getPosition()
+    objects.ball.body:setPosition(x, y + dt*1000)
+  end
+
+  if love.mouse.isDown(2) and not ontitlescreen and not ineditor then
     objects.ball.fixture:setRestitution(0)
     objects.ball.body:setLinearDamping(1.3)
     objects.ball.fixture:setDensity(2)
@@ -323,17 +338,17 @@ function love.update(dt)
     objects.ball.body:applyForce(2000, 0)
   end
 
-  if objects.ball.body:getY() > 1300 and not carldead then
+  if objects.ball.body:getY() > 1300 and not carldead and not ineditor then
     killcarl()
   end
 
-  if carlschut < 5 and not madecocksfx then
+  if carlschut < 5 and not madecocksfx and not ineditor then
     madecocksfx = true
     carlammo = 5
     playSound('shotgun_cock', 1.0)
   end
 
-  if love.mouse.isDown(1) and carlschut < 10 and not carldead and carlammo > 0 then
+  if love.mouse.isDown(1) and carlschut < 10 and not carldead and carlammo > 0 and not ineditor then
     local gunwidth = objects.ball.shape:getRadius()*3
     local mx,my = worldcam:mousePosition()
     local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
@@ -401,7 +416,7 @@ function love.draw()
 
   -- janky solution time
   worldcam:rotateTo(ease.outExpo(love.timer.getTime() - recentpause, pause and 0 or 0.2, 0.2 * (pause and 1 or -1), 0.4))
-  worldcam:zoomTo(ease.outExpo(love.timer.getTime() - recentpause, pause and 1 or 1.2, 0.2 * (pause and 1 or -1), 0.35))
+  worldcam:zoomTo(ease.outExpo(love.timer.getTime() - recentpause, pause and 1 or 1.2, 0.2 * (pause and 1 or -1), 0.35) + zoom)
 
   rendering.renderWorld(worldcam)
 
@@ -443,14 +458,24 @@ function love.draw()
 end
 
 function love.keypressed(key)
-  if key == 'r' and not carldead and not ontitlescreen then
+  if key == 'r' and not carldead and not ontitlescreen and not ineditor then
     killcarl()
   elseif key == 'f5' then
     world:destroy()
     world = loadMap(json.decode(love.filesystem.read('level.json')))
+  elseif key == 'f2' and not pause then
+    ineditor = not ineditor
+    zoom = 0
+    titlescreentweenstart = 0
+    ontitlescreen = false
+    carldead = false
+    carlcanjump = true
+    love.mouse.setVisible(ineditor)
+    world:destroy()
+    world = loadMap(json.decode(love.filesystem.read('level.json')))
   elseif key == 'f3' then
     seedebug = not seedebug
-  elseif key == 'escape' and  not ontitlescreen then
+  elseif key == 'escape' and not ontitlescreen then
     pause = not pause
     recentpause = love.timer.getTime()
   end
@@ -459,5 +484,15 @@ end
 function love.mousereleased(x, y, m)
   if m == 1 and mouseonbutton ~= false and pause then
     buttonactions[mouseonbutton]()
+  end
+end
+
+function love.mousemoved(x, y, dx, dy)
+  if dx ~= 0 and dy ~= 0 then carlblink = 0 end
+end
+
+function love.wheelmoved(x, y)
+  if ineditor and y ~= 0 then
+    zoom = zoom + y/12
   end
 end

@@ -49,7 +49,7 @@ this.renderWorld = function(camera)
     love.graphics.setColor(1, 198/255, 13/255)
     love.graphics.circle("fill", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
 
-    love.graphics.setColor(aimpos[3] and {0.9,0.9,0.9} or {0.1,0.1,0.1})
+    love.graphics.setColor((aimpos[3] and not ineditor) and {0.9,0.9,0.9} or {0.1,0.1,0.1})
     love.graphics.circle("line", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
 
     love.graphics.setColor(1,1,1)
@@ -150,7 +150,7 @@ this.renderWorld = function(camera)
   end
 
   love.graphics.setColor(1,1,1)
-  if not carldead then
+  if not carldead and not ineditor then
     love.graphics.draw(gun, objects.ball.body:getX(), objects.ball.body:getY(), carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
   end
 end
@@ -206,7 +206,7 @@ this.renderPause = function()
 end
 
 this.renderUI = function()
-  if not pause then
+  if not pause and not ineditor then
     local canschut = carlschut < 10
     love.graphics.push()
     love.graphics.translate(aimpos[1], aimpos[2])
@@ -255,7 +255,7 @@ this.renderUI = function()
 
     love.graphics.setColor(0,0,0)
     love.graphics.print('x '..objects.ball.body:getX()..'\ny '..objects.ball.body:getY())
-  else
+  elseif not ineditor then
     local i
     for i = 1, 5 do
       local bullet = sprites['bullet' .. (i <= carlammo and '' or 'empty')]
