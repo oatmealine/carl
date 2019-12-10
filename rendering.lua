@@ -43,7 +43,7 @@ this.renderWorld = function(camera)
     eyes = sprites['carleyes' .. frames[carlblink%130-120]]
   end
 
-  love.graphics.setLineWidth(1)
+  love.graphics.setLineWidth(love.graphics.getWidth()/10 / 130)
 
   if not carldead then
     love.graphics.setColor(1, 198/255, 13/255)
@@ -151,7 +151,7 @@ this.renderWorld = function(camera)
 
   love.graphics.setColor(1,1,1)
   if not carldead and not ineditor then
-    love.graphics.draw(gun, objects.ball.body:getX(), objects.ball.body:getY(), carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
+    love.graphics.draw(gun, objects.ball.body:getX() - math.cos(carlrot) * carlschut/5, objects.ball.body:getY() - math.sin(carlrot) * carlschut/5, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
   end
 end
 

@@ -96,6 +96,8 @@ function killcarl()
     carldead = false
     madecocksfx = false
     carlschut = 20
+    carlschutloc = {0,9000}
+    carlschutorigin = {-1,9000}
     objects.ball.body:setPosition(carlcheck[1], carlcheck[2])
     objects.ball.body:setLinearVelocity(0, 0.1)
   end)
@@ -161,7 +163,7 @@ function loadMap(lvl)
 
         for _,g in ipairs(objects.grounds) do
           for _,f in ipairs(g.body:getFixtures()) do
-            if (f == fixture1 or f == fixture2) and f:getBody():getType() == "static" then
+            if (f == fixture1 or f == fixture2) then
               hasground = true
             end
           end
@@ -265,7 +267,6 @@ function love.load()
   }
 
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
-  love.window.setMode(1200, 800)
   love.graphics.setDefaultFilter('nearest','nearest', 2)
 end
 
@@ -415,8 +416,10 @@ function love.draw()
   love.graphics.push()
 
   -- janky solution time
-  worldcam:rotateTo(ease.outExpo(love.timer.getTime() - recentpause, pause and 0 or 0.2, 0.2 * (pause and 1 or -1), 0.4))
-  worldcam:zoomTo(ease.outExpo(love.timer.getTime() - recentpause, pause and 1 or 1.2, 0.2 * (pause and 1 or -1), 0.35) + zoom)
+  local zoomease = ease.outExpo(love.timer.getTime() - recentpause, pause and 1 or 1.2, 0.2 * (pause and 1 or -1), 0.35)
+  local rotease = ease.outExpo(love.timer.getTime() - recentpause, pause and 0 or 0.2, 0.2 * (pause and 1 or -1), 0.4)
+  worldcam:rotateTo(rotease)
+  worldcam:zoomTo((zoomease + zoom) * love.graphics.getWidth()/10 / 120)
 
   rendering.renderWorld(worldcam)
 
@@ -475,6 +478,8 @@ function love.keypressed(key)
     world = loadMap(json.decode(love.filesystem.read('level.json')))
   elseif key == 'f3' then
     seedebug = not seedebug
+  elseif key == 'f11' then
+    love.window.setFullscreen(not love.window.getFullscreen())
   elseif key == 'escape' and not ontitlescreen then
     pause = not pause
     recentpause = love.timer.getTime()
