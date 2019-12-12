@@ -26,6 +26,7 @@ carlschut = 0
 carlschutorigin = {0,0}
 carlschutloc = {0,0}
 
+carlweapon = 0
 carlammo = 5
 
 carlblink = 0
@@ -244,9 +245,10 @@ function love.load()
   registerSound('shotgun_cock', 1.0)
   registerSound('shotgun_fire1', 1.0)
   registerSound('shotgun_fire2', 1.0)
+  registerSound('doop', 1.0)
 
   for i=1,5 do
-    registerSound('carlcry'..i, 1.0)
+    registerSound('carlcry'..i, 0.5)
   end
 
   love.physics.setMeter(64)
@@ -274,6 +276,7 @@ end
 function love.update(dt)
   timer.update(dt)
   love.mouse.setVisible(pause or ineditor)
+  updateMusic()
 
   if pause then return end
   gametimer.update(dt)
@@ -346,55 +349,60 @@ function love.update(dt)
   if carlschut < 5 and not madecocksfx and not ineditor then
     madecocksfx = true
     carlammo = 5
-    playSound('shotgun_cock', 1.0)
+    playSound('shotgun_cock', 0.4)
   end
 
   if love.mouse.isDown(1) and carlschut < 10 and not carldead and carlammo > 0 and not ineditor then
-    local gunwidth = objects.ball.shape:getRadius()*3
-    local mx,my = worldcam:mousePosition()
-    local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
-    carlschutorigin = {objects.ball.body:getX()+math.cos(carlrot)*gunwidth, objects.ball.body:getY()+math.sin(carlrot)*gunwidth}
-    carlschutloc = {mx+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50), my+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50)}
+    if carlweapon == 0 then
+      local gunwidth = objects.ball.shape:getRadius()*3
+      local mx,my = worldcam:mousePosition()
+      local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
+      carlschutorigin = {objects.ball.body:getX()+math.cos(carlrot)*gunwidth, objects.ball.body:getY()+math.sin(carlrot)*gunwidth}
+      carlschutloc = {mx+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50), my+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50)}
 
-    carlschut = 40 + carlschut / 4
-    carlammo = carlammo - 1
+      carlschut = 40 + carlschut / 4
+      carlammo = carlammo - 1
 
-    if madecocksfx then madecocksfx = false end
+      if madecocksfx then madecocksfx = false end
 
-    if ontitlescreen then
-      ontitlescreen = false
-      titlescreentweenstart = gametime
-    else
-      objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*1500, math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*2000)
-      
-      local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
-      carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
+      if ontitlescreen then
+        ontitlescreen = false
+        titlescreentweenstart = gametime
+        gametimer.after(1, function()
+          playMusic('carltheme', 0.9)
+        end)
+      else
+        objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*1500, math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*2000)
+        
+        local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
+        carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
 
-      local lowestdist = {nil, nil}
+        local lowestdist = {nil, nil}
 
-      world:rayCast(carlschutorigin[1], carlschutorigin[2], multipliedloc[1], multipliedloc[2], function(fix, x, y)
-        local dist = math.abs(carlschutorigin[1] - x) + math.abs(carlschutorigin[2] - y)
+        world:rayCast(carlschutorigin[1], carlschutorigin[2], multipliedloc[1], multipliedloc[2], function(fix, x, y)
+          local dist = math.abs(carlschutorigin[1] - x) + math.abs(carlschutorigin[2] - y)
 
-        if lowestdist[1] == nil or dist < lowestdist[1] then
-          lowestdist = {dist, fix}
-        end
+          if lowestdist[1] == nil or dist < lowestdist[1] then
+            lowestdist = {dist, fix}
+          end
 
-        return 1
-      end)
+          return 1
+        end)
 
-      if lowestdist[2] ~= nil then
-        local body = lowestdist[2]:getBody()
+        if lowestdist[2] ~= nil then
+          local body = lowestdist[2]:getBody()
 
-        local xforce = math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*-1500
-        local yforce = math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*-1500
+          local xforce = math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*-1500
+          local yforce = math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*-1500
 
-        if body:getType() == "dynamic" then
-          body:applyForce(xforce, yforce)
+          if body:getType() == "dynamic" then
+            body:applyForce(xforce, yforce)
+          end
         end
       end
-    end
 
-    playSound('shotgun_fire'..math.random(1,2), 1.0)
+    playSound('shotgun_fire'..math.random(1,2), 0.5)
+    end
   elseif carlammo == 0 then
     carlammo = -1
     carlschut = 60
@@ -482,6 +490,7 @@ function love.keypressed(key)
     love.window.setFullscreen(not love.window.getFullscreen())
   elseif key == 'escape' and not ontitlescreen then
     pause = not pause
+    resetMusic('carltheme', pause and 0.4 or 0.9)
     recentpause = love.timer.getTime()
   end
 end
@@ -499,5 +508,7 @@ end
 function love.wheelmoved(x, y)
   if ineditor and y ~= 0 then
     zoom = zoom + y/12
+  else
+    carlweapon = (carlweapon + y)%3
   end
 end

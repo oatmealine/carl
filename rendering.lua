@@ -47,11 +47,21 @@ this.renderWorld = function(camera)
 
   if not carldead then
     love.graphics.setColor(1, 198/255, 13/255)
+
+    if carlweapon == 2 and not ineditor then
+      love.graphics.circle('fill', objects.ball.body:getX() + math.cos(carlrot) * objects.ball.shape:getRadius(), objects.ball.body:getY() + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
+      love.graphics.setColor(0.1,0.1,0.1)
+      love.graphics.circle('line', objects.ball.body:getX() + math.cos(carlrot) * objects.ball.shape:getRadius(), objects.ball.body:getY() + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
+      love.graphics.setColor(1, 198/255, 13/255)
+    end
+
     love.graphics.circle("fill", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
 
     love.graphics.setColor((aimpos[3] and not ineditor) and {0.9,0.9,0.9} or {0.1,0.1,0.1})
     love.graphics.circle("line", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
 
+    
+    
     love.graphics.setColor(1,1,1)
     if not seedebug then
       local eyex = objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1)
@@ -125,12 +135,17 @@ this.renderWorld = function(camera)
 
   -- drawing gun and the bullet (???)
   local gun = sprites["gun"]
+
+  if carlweapon == 1 then
+    gun = sprites["bat"]
+  end
+
   local gunscale = (objects.ball.shape:getRadius()*3)/gun:getWidth()
 
   local gunshotdistance = {carlschutorigin[1]-carlschutloc[1], carlschutorigin[2]-carlschutloc[2]}
 
   love.graphics.setColor(1,1,1,carlschut/40)
-  if carlschut > 0 and carlschutorigin ~= carlschutloc then
+  if carlschut > 0 and carlweapon == 0 and carlschutorigin ~= carlschutloc then
     local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
     carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
 
@@ -151,7 +166,9 @@ this.renderWorld = function(camera)
 
   love.graphics.setColor(1,1,1)
   if not carldead and not ineditor then
-    love.graphics.draw(gun, objects.ball.body:getX() - math.cos(carlrot) * carlschut/5, objects.ball.body:getY() - math.sin(carlrot) * carlschut/5, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
+    if carlweapon ~= 2 then
+      love.graphics.draw(gun, objects.ball.body:getX() - math.cos(carlrot) * carlschut/5, objects.ball.body:getY() - math.sin(carlrot) * carlschut/5, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
+    end
   end
 end
 
@@ -179,6 +196,7 @@ this.renderPause = function()
       mouseonbuttoncheck = i
       if not pointInBox(oldmousepos[1], oldmousepos[2], buttonx, thisheight, buttonwidth, buttonheight) then
         lasthover = love.timer.getTime()
+        playSound('doop', 0.6)
       end
 
       if love.timer.getTime()-lasthover < 0.2 then
@@ -221,6 +239,19 @@ this.renderUI = function()
     love.graphics.rectangle('line', 5+carlschut, -2, 9, 4)
     love.graphics.rectangle('line', -2, -5-carlschut-9, 4, 9)
     love.graphics.pop()
+  end
+
+  if ineditor then
+    love.graphics.setColor(0.45,0.45,0.45)
+    love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), 50)
+    love.graphics.setColor(0.3,0.3,0.3)
+    love.graphics.line(0, 50, love.graphics.getWidth(), 50)
+
+    local i;
+    for i=0,3 do
+      love.graphics.setColor(0.4,0.4,0.4)
+      love.graphics.rectangle('fill', 5 + i*(40+2), 5, 40, 40)
+    end
   end
 
   if seedebug then
