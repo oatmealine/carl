@@ -5,6 +5,7 @@ gametimer = require 'lib.timer'
 timer = require 'lib.timer copy' -- lua is stupid so i have to do this
 ease = require 'lib.easing'
 json = require 'lib.json'
+ctrl = require 'lib.ctrl'()
 
 rendering = require 'rendering'
 require 'utils'
@@ -251,6 +252,35 @@ function love.load()
     registerSound('carlcry'..i, 0.5)
   end
 
+  -- gun shoot
+  ctrl:bind("fire", {"keyboard", "e"})
+  ctrl:bind("fire", {"gamepad", "default", "button", "x"})
+  ctrl:bind("fire", {"mouse", "left"})
+
+  -- hardening
+  ctrl:bind("harden", {"mouse", "right"})
+  ctrl:bind("harden", {"keyboard", "q"})
+
+  -- movement
+  ctrl:bind("left", {"keyboard", "a"})
+  ctrl:bind("right", {"keyboard", "d"})
+  ctrl:bind("down", {"keyboard", "s"})
+
+  ctrl:bind("jump", {"keyboard", "w"})
+  ctrl:bind("jump", {"keyboard", "space"})
+  ctrl:bind("jump", {"gamepad", "default", "button", "a"})
+
+  -- meta
+  ctrl:bind("reset", {"keyboard", "r"})
+  ctrl:bind("fullscreen", {"keyboard", "f11"})
+  ctrl:bind("pause", {"keyboard", "escape"})
+  -- ctrl:bind("pause", {"gamepad", "default", "pause"})
+
+  -- debug hotkeys
+  ctrl:bind("editor", {"keyboard", "f2"})
+  ctrl:bind("debug", {"keyboard", "f3"})
+  ctrl:bind("reload", {"keyboard", "f5"})
+
   love.physics.setMeter(64)
   world:destroy()
   world = loadMap(level)
@@ -297,38 +327,38 @@ function love.update(dt)
     carlblink = 0
   end
 
-  if love.keyboard.isDown("d") and not ontitlescreen then
+  if ctrl:isDown("right") and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
-      objects.ball.body:setPosition(x + dt * 1000, y)
+      objects.ball.body:setPosition(x + dt * 1000 * ctrl:getValue("right"), y)
     else
-      objects.ball.body:applyForce(MOVEFORCE, 0)
+      objects.ball.body:applyForce(MOVEFORCE * ctrl:getValue("right"), 0)
     end
-  elseif love.keyboard.isDown("a") and not ontitlescreen then
+  elseif ctrl:isDown("left") and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
-      objects.ball.body:setPosition(x - dt * 1000, y)
+      objects.ball.body:setPosition(x - dt * 1000 * ctrl:getValue("left"), y)
     else
-      objects.ball.body:applyForce(-MOVEFORCE, 0)
+      objects.ball.body:applyForce(-MOVEFORCE * ctrl:getValue("left"), 0)
     end
   end
 
-  if love.keyboard.isDown("w") and carlcanjump and not ontitlescreen then
+  if ctrl:isDown("jump") and carlcanjump and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
-      objects.ball.body:setPosition(x, y - dt*1000)
+      objects.ball.body:setPosition(x, y - dt * 1000 * ctrl:getValue("jump"))
     else
       objects.ball.body:applyForce(0, -JUMPFORCE)
       carlcanjump = false
     end
   end
 
-  if love.keyboard.isDown("s") and ineditor then
+  if ctrl:isDown("down") and ineditor then
     local x,y = objects.ball.body:getPosition()
-    objects.ball.body:setPosition(x, y + dt*1000)
+    objects.ball.body:setPosition(x, y + dt * 1000 * ctrl:getValue("down"))
   end
 
-  if love.mouse.isDown(2) and not ontitlescreen and not ineditor then
+  if ctrl:isDown("harden") and not ontitlescreen and not ineditor then
     objects.ball.fixture:setRestitution(0)
     objects.ball.body:setLinearDamping(1.3)
     objects.ball.fixture:setDensity(2)
@@ -338,21 +368,7 @@ function love.update(dt)
     objects.ball.fixture:setDensity(1)
   end
 
-  if objects.ball.body:getX() < -100 then
-    objects.ball.body:applyForce(2000, 0)
-  end
-
-  if objects.ball.body:getY() > 1300 and not carldead and not ineditor then
-    killcarl()
-  end
-
-  if carlschut < 5 and not madecocksfx and not ineditor then
-    madecocksfx = true
-    carlammo = 5
-    playSound('shotgun_cock', 0.4)
-  end
-
-  if love.mouse.isDown(1) and carlschut < 10 and not carldead and carlammo > 0 and not ineditor then
+  if ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor then
     if carlweapon == 0 then
       local gunwidth = objects.ball.shape:getRadius()*3
       local mx,my = worldcam:mousePosition()
@@ -414,6 +430,20 @@ function love.update(dt)
   else
     carlschut = 0
   end
+
+  if objects.ball.body:getX() < -100 then
+    objects.ball.body:applyForce(2000, 0)
+  end
+
+  if objects.ball.body:getY() > 1300 and not carldead and not ineditor then
+    killcarl()
+  end
+
+  if carlschut < 5 and not madecocksfx and not ineditor then
+    madecocksfx = true
+    carlammo = 5
+    playSound('shotgun_cock', 0.4)
+  end
 end
 
 function love.draw()
@@ -468,13 +498,13 @@ function love.draw()
   love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 end
 
-function love.keypressed(key)
-  if key == 'r' and not carldead and not ontitlescreen and not ineditor then
+function ctrl:inputpressed(name, value)
+  if name == 'reset' and not carldead and not ontitlescreen and not ineditor then
     killcarl()
-  elseif key == 'f5' then
+  elseif name == 'reload' then
     world:destroy()
     world = loadMap(json.decode(love.filesystem.read('level.json')))
-  elseif key == 'f2' and not pause then
+  elseif name == 'editor' and not pause then
     ineditor = not ineditor
     zoom = 0
     titlescreentweenstart = 0
@@ -484,11 +514,11 @@ function love.keypressed(key)
     love.mouse.setVisible(ineditor)
     world:destroy()
     world = loadMap(json.decode(love.filesystem.read('level.json')))
-  elseif key == 'f3' then
+  elseif name == 'debug' then
     seedebug = not seedebug
-  elseif key == 'f11' then
+  elseif name == 'fullscreen' then
     love.window.setFullscreen(not love.window.getFullscreen())
-  elseif key == 'escape' and not ontitlescreen then
+  elseif name == 'pause' and not ontitlescreen then
     pause = not pause
     resetMusic('carltheme', pause and 0.4 or 0.9)
     recentpause = love.timer.getTime()
@@ -512,3 +542,5 @@ function love.wheelmoved(x, y)
     carlweapon = (carlweapon + y)%3
   end
 end
+
+ctrl:hookup()
