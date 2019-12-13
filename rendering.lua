@@ -185,7 +185,7 @@ this.renderWorld = function(camera)
   if not carldead and not ineditor then
     if carlweapon ~= 2 then
       -- fuck this code btw
-      love.graphics.draw(gun, carlx - math.cos(carlrot) * carlschut/5, carly - math.sin(carlrot) * carlschut/5, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
+      love.graphics.draw(gun, carlx - math.cos(carlrot) * carlschut/5, carly - math.sin(carlrot) * carlschut/5 + objects.ball.shape:getRadius()/4, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
     end
   end
 end
