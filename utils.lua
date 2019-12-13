@@ -22,3 +22,11 @@ function table.add(table, num)
   end
   return new
 end
+
+function math.round(num)
+  if num%1 > 0.4 then
+    return math.ceil(num)
+  else
+    return math.floor(num)
+  end
+end

@@ -31,8 +31,12 @@ this.renderWorld = function(camera)
 
   -- carl
   local mx, my = camera:worldCoords(aimpos[1], aimpos[2])
-  local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
+  local carlx, carly = objects.ball.body:getPosition()
+  local carlrot = math.round(math.atan2(my-carly, mx-carlx) * 30) / 30
   local carlflipped = math.abs(carlrot) < math.pi/2
+
+  carlx = math.round(carlx)
+  carly = math.round(carly)
 
   local eyes = sprites['carleyes']
 
@@ -51,28 +55,28 @@ this.renderWorld = function(camera)
     if carlweapon == 2 and not ineditor then
       -- fists
       -- oh no
-      love.graphics.circle('fill', objects.ball.body:getX() + math.cos(carlrot) * objects.ball.shape:getRadius(), objects.ball.body:getY() + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
+      love.graphics.circle('fill', carlx + math.cos(carlrot) * objects.ball.shape:getRadius(), carly + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
       love.graphics.setColor(0.1,0.1,0.1)
-      love.graphics.circle('line', objects.ball.body:getX() + math.cos(carlrot) * objects.ball.shape:getRadius(), objects.ball.body:getY() + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
+      love.graphics.circle('line', carlx + math.cos(carlrot) * objects.ball.shape:getRadius(), carly + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
       love.graphics.setColor(1, 198/255, 13/255)
     end
 
     -- the ball
-    love.graphics.circle("fill", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
+    love.graphics.circle("fill", carlx, carly, objects.ball.shape:getRadius())
 
     love.graphics.setColor((aimpos[3] and not ineditor) and {0.9,0.9,0.9} or {0.1,0.1,0.1}) -- change the outline if its hardening
-    love.graphics.circle("line", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
+    love.graphics.circle("line", carlx, carly, objects.ball.shape:getRadius())
 
     love.graphics.setColor(1,1,1)
     -- eyes rendering
     if not seedebug then
-      local eyex = objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1)
-      local eyey = objects.ball.body:getY()-objects.ball.shape:getRadius()
+      local eyex = carlx-objects.ball.shape:getRadius() * (carlflipped and 1 or -1)
+      local eyey = carly-objects.ball.shape:getRadius()
       local eyescalex = (objects.ball.shape:getRadius()*2)/eyes:getWidth() * (carlflipped and 1 or -1)
       local eyescaley = (objects.ball.shape:getRadius()*2)/eyes:getHeight()
 
       if eyes == sprites['carleyes'] then
-        local camx, camy = worldcam:cameraCoords(objects.ball.body:getX(), objects.ball.body:getY())
+        local camx, camy = worldcam:cameraCoords(carlx, carly)
 
         if not pause then
           irisxoff = math.max(math.min((camx/40 - love.mouse.getX()/40), 2), -2)*-1
@@ -92,18 +96,18 @@ this.renderWorld = function(camera)
 
     love.graphics.push()
 
-    love.graphics.translate(objects.ball.body:getX()+objects.ball.shape:getRadius()/2, objects.ball.body:getY()+objects.ball.shape:getRadius()/2-yoff)
+    love.graphics.translate(carlx+objects.ball.shape:getRadius()/2, carly+objects.ball.shape:getRadius()/2-yoff)
     love.graphics.rotate(yoff/200*math.pi/3*2)
-    love.graphics.translate(-objects.ball.body:getX()-objects.ball.shape:getRadius()/2, -objects.ball.body:getY()-objects.ball.shape:getRadius()/2+yoff)
+    love.graphics.translate(-carlx-objects.ball.shape:getRadius()/2, -carly-objects.ball.shape:getRadius()/2+yoff)
 
     love.graphics.setColor(1, 198/255, 13/255, 1-(love.timer.getTime()-recentdeath)/0.5)
-    love.graphics.circle("fill", objects.ball.body:getX(), objects.ball.body:getY()-yoff, objects.ball.shape:getRadius())
+    love.graphics.circle("fill", carlx, carly-yoff, objects.ball.shape:getRadius())
 
     love.graphics.setColor(0.1,0.1,0.1, 1-(love.timer.getTime()-recentdeath)/0.5)
-    love.graphics.circle("line", objects.ball.body:getX(), objects.ball.body:getY()-yoff, objects.ball.shape:getRadius())
+    love.graphics.circle("line", carlx, carly-yoff, objects.ball.shape:getRadius())
 
     love.graphics.setColor(1,1,1, 1-(love.timer.getTime()-recentdeath)/0.5)
-    love.graphics.draw(eyes, objects.ball.body:getX()-objects.ball.shape:getRadius(), objects.ball.body:getY()-objects.ball.shape:getRadius()-yoff, 0, (objects.ball.shape:getRadius()*2)/eyes:getWidth(), (objects.ball.shape:getRadius()*2)/eyes:getHeight())
+    love.graphics.draw(eyes, carlx-objects.ball.shape:getRadius(), carly-objects.ball.shape:getRadius()-yoff, 0, (objects.ball.shape:getRadius()*2)/eyes:getWidth(), (objects.ball.shape:getRadius()*2)/eyes:getHeight())
     love.graphics.pop()
   end
 
@@ -143,7 +147,7 @@ this.renderWorld = function(camera)
     gun = sprites["bat"]
   end
 
-  local gunscale = (objects.ball.shape:getRadius() * 3) / gun:getWidth()
+  local gunscale = math.round((objects.ball.shape:getRadius() * 3) / gun:getWidth() * 10) / 10
 
   love.graphics.setColor(1,1,1,carlschut/40)
 
@@ -174,7 +178,7 @@ this.renderWorld = function(camera)
   if not carldead and not ineditor then
     if carlweapon ~= 2 then
       -- fuck this code btw
-      love.graphics.draw(gun, objects.ball.body:getX() - math.cos(carlrot) * carlschut/5, objects.ball.body:getY() - math.sin(carlrot) * carlschut/5, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
+      love.graphics.draw(gun, carlx - math.cos(carlrot) * carlschut/5, carly - math.sin(carlrot) * carlschut/5, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
     end
   end
 end
@@ -297,7 +301,7 @@ this.renderUI = function()
     love.graphics.print(math.floor(vely), carlx, yarrow)
 
     love.graphics.setColor(0,0,0)
-    love.graphics.print('x '..objects.ball.body:getX()..'\ny '..objects.ball.body:getY())
+    love.graphics.print('x '..carlx..'\ny '..carly)
   elseif not ineditor then
     local i
     for i = 1, 5 do
