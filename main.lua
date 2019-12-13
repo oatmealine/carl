@@ -1,3 +1,5 @@
+local upAt = love.timer.getTime()
+
 camera = require 'lib.camera'
 gamestate = require 'lib.gamestate'
 signal = require 'lib.signal'
@@ -12,6 +14,7 @@ require 'utils'
 require 'audio'
 require 'vals'
 
+-- set up camera stuff
 worldcam = camera()
 worldcam.smoother = camera.smooth.damped(15)
 
@@ -19,40 +22,40 @@ sprites = {}
 fonts = {}
 sounds = {}
 
-seedebug = false
+seedebug = false -- see the debug values
 
-ineditor = false
+ineditor = false -- whether youre editing a level or not
 
-carlschut = 0
-carlschutorigin = {0,0}
-carlschutloc = {0,0}
+carlschut = 0 -- the carl shooting timer
+carlschutorigin = {0, 0} -- where carl shot from
+carlschutloc = {0, 0} -- where the bullet is heading towards
 
-carlweapon = 0
-carlammo = 5
+carlweapon = 0 -- what weapon carl is using (0-2)
+carlammo = 5 -- how much bullets carl has
 
-carlblink = 0
+carlblink = 0 -- blink timer
 
-carlcanjump = false
+carlcanjump = false -- i think you can guess
 
-carldead = false
-recentdeath = love.timer.getTime()
+carldead = false -- if carl is dead or not
+recentdeath = love.timer.getTime() -- tween stuff
 
-carlcheck = {800/2, 800/2}
+carlcheck = {400, 400} -- the last checkpoint carl was at
 
-oldmousepos = {love.mouse.getX(), love.mouse.getY()}
+oldmousepos = {love.mouse.getX(), love.mouse.getY()} -- old mouse position, for menu stuff
 
-aimpos = {0,0,false}
+aimpos = {0, 0, false} -- where carl is aiming (for pause compatability)
 
-pause = false
-gametime = 0
-recentpause = 0
+pause = false -- if the game is paused or not
+gametime = 0 -- game timer
+recentpause = 0 -- tween stuff
 
-ontitlescreen = true
-titlescreentweenstart = -90
+ontitlescreen = true -- whether the player is on the title screen or not
+titlescreentweenstart = -90 -- tween stuff
 
-madecocksfx = true
+madecocksfx = true -- whether the cock sfx has been made yet or not
 
-local zoom = 0
+local zoom = 0 -- editor zoom amount
 
 -- temp
 level = json.decode(love.filesystem.read('level.json'))
@@ -106,18 +109,22 @@ function killcarl()
 end
 
 function loadMap(lvl)
+  -- remove all objects
   objects = {}
   objects.grounds = {}
   objects.dirt = {}
   objects.ball = {}
 
+  -- create a new world
   local wrd = love.physics.newWorld(0, GRAVITY, true)
 
+  -- process each ground object
   for _,obj in ipairs(lvl.grass) do
     local body = love.physics.newBody(wrd, obj.x, obj.y, obj.dynamic and "dynamic" or "static")
     local shape
     local fixture
 
+    -- type handling
     if obj.type == 'rectangle' then
       shape = love.physics.newRectangleShape(obj.width, obj.height)
     elseif obj.type == 'polygon' then
@@ -137,13 +144,14 @@ function loadMap(lvl)
     fixture = love.physics.newFixture(body, shape)
     fixture:setFriction(0.5)
     fixture:setMask(2)
-    body:setUserData(obj)
+    body:setUserData(obj) -- for non-box2d values
 
     table.insert(objects.grounds, {
       body = body, shape = shape, fixture = fixture
     })
   end
 
+  -- add carl
   objects.ball.body = love.physics.newBody(wrd, lvl.properties.spawnloc[1], lvl.properties.spawnloc[2], ineditor and "static" or "dynamic")
   objects.ball.shape = love.physics.newCircleShape(25)
   objects.ball.fixture = love.physics.newFixture(objects.ball.body, objects.ball.shape, 1)
@@ -151,6 +159,7 @@ function loadMap(lvl)
   objects.ball.fixture:setFriction(0.1)
   objects.ball.body:setFixedRotation(true)
 
+  -- add jump collision
   if not ineditor then
     local function checkcarlcoll(func)
       return function(fixture1, fixture2, coll)
@@ -186,7 +195,19 @@ function loadMap(lvl)
 end
 
 function love.load()
-  local function addsprites(d)
+  -- give a warm welcome
+  print(
+    'hello! carl running on '..love.system.getOS()..', love v'..love.getVersion()..'\n'..
+    '(we couldnt afford fancy ascii art. please enjoy a circle)\n'..
+    'o\n'
+  )
+
+  -- resource loading
+  local spritecount = 0
+  local audiocount = 0
+
+  -- adding sprites
+  local function addSprites(d)
     local dir = "assets/sprites"
     if d then
       dir = dir .. "/" .. d
@@ -199,19 +220,21 @@ function love.load()
         if d then
           spritename = d .. "/" .. spritename
         end
+        spritecount = spritecount + 1
         sprites[spritename] = sprite
       elseif love.filesystem.getInfo(dir .. "/" .. file).type == "directory" then
         local newdir = file
         if d then
           newdir = d .. "/" .. newdir
         end
-        addsprites(file)
+        addSprites(file)
       end
     end
   end
-  addsprites()
+  addSprites()
+  print('loaded '..spritecount..' sprites')
 
-  
+  -- audio
   sound_exists = {}
   local function addAudio(d)
     local dir = "assets/audio"
@@ -233,15 +256,14 @@ function love.load()
         if file:ends(".ogg") then audioname = file:sub(1, -5) end
         if file:ends(".flac") then audioname = file:sub(1, -5) end
         if file:ends(".xm") then audioname = file:sub(1, -4) end
-        --[[if d then
-          audioname = d .. "/" .. audioname
-        end]]
+
         sound_exists[audioname] = true
-        --print("ℹ️ audio "..audioname.." added")
+        audiocount = audiocount + 1
       end
     end
   end
   addAudio()
+  print('loaded '..audiocount..' audio files')
 
   registerSound('shotgun_cock', 1.0)
   registerSound('shotgun_fire1', 1.0)
@@ -252,35 +274,10 @@ function love.load()
     registerSound('carlcry'..i, 0.5)
   end
 
-  -- gun shoot
-  ctrl:bind("fire", {"keyboard", "e"})
-  ctrl:bind("fire", {"gamepad", "default", "button", "x"})
-  ctrl:bind("fire", {"mouse", "left"})
+  -- let vals.lua handle it
+  bindings()
 
-  -- hardening
-  ctrl:bind("harden", {"mouse", "right"})
-  ctrl:bind("harden", {"keyboard", "q"})
-
-  -- movement
-  ctrl:bind("left", {"keyboard", "a"})
-  ctrl:bind("right", {"keyboard", "d"})
-  ctrl:bind("down", {"keyboard", "s"})
-
-  ctrl:bind("jump", {"keyboard", "w"})
-  ctrl:bind("jump", {"keyboard", "space"})
-  ctrl:bind("jump", {"gamepad", "default", "button", "a"})
-
-  -- meta
-  ctrl:bind("reset", {"keyboard", "r"})
-  ctrl:bind("fullscreen", {"keyboard", "f11"})
-  ctrl:bind("pause", {"keyboard", "escape"})
-  -- ctrl:bind("pause", {"gamepad", "default", "pause"})
-
-  -- debug hotkeys
-  ctrl:bind("editor", {"keyboard", "f2"})
-  ctrl:bind("debug", {"keyboard", "f3"})
-  ctrl:bind("reload", {"keyboard", "f5"})
-
+  -- setting up love.physics and the world
   love.physics.setMeter(64)
   world:destroy()
   world = loadMap(level)
@@ -300,21 +297,27 @@ function love.load()
 
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
   love.graphics.setDefaultFilter('nearest','nearest', 2)
+
+  print('boot took ' .. math.floor(love.timer.getTime() - upAt) .. 'ms!')
 end
 
 
 function love.update(dt)
+  -- update stuff
   timer.update(dt)
   love.mouse.setVisible(pause or ineditor)
   updateMusic()
 
+  -- if its paused just stop there
   if pause then return end
   gametimer.update(dt)
   world:update(dt)
   gametime = gametime + dt
 
-  aimpos = {love.mouse.getX(), love.mouse.getY(), love.mouse.isDown(2)}
+  -- aiming position for rendering
+  aimpos = {love.mouse.getX(), love.mouse.getY(), ctrl:isDown('harden')}
 
+  -- camera positioning
   if gametime-titlescreentweenstart < 2 then
     worldcam:lockPosition(math.max(objects.ball.body:getX(), 100),
     objects.ball.body:getY() - 600 + ease.inOutSine(gametime-titlescreentweenstart, 0, 600, 2))
@@ -323,10 +326,7 @@ function love.update(dt)
     math.min(objects.ball.body:getY() + (love.mouse.getY()-love.graphics.getHeight())/(love.graphics.getHeight()/2)*20, 800))
   end
 
-  if (love.keyboard.isDown('d') or love.keyboard.isDown('a') or love.keyboard.isDown('w') or love.mouse.isDown(1) or love.mouse.isDown(2)) and carlblink%180 <= 170 then
-    carlblink = 0
-  end
-
+  -- input handling
   if ctrl:isDown("right") and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
@@ -368,13 +368,14 @@ function love.update(dt)
     objects.ball.fixture:setDensity(1)
   end
 
+  -- shooting
   if ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor then
     if carlweapon == 0 then
       local gunwidth = objects.ball.shape:getRadius()*3
       local mx,my = worldcam:mousePosition()
       local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
       carlschutorigin = {objects.ball.body:getX()+math.cos(carlrot)*gunwidth, objects.ball.body:getY()+math.sin(carlrot)*gunwidth}
-      carlschutloc = {mx+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50), my+((math.random(30, 100)/100 * carlschut * (math.random(0,1)*2-1))/10*50)}
+      carlschutloc = {mx + ((math.random(30, 100) / 100 * carlschut * (math.random(0, 1) * 2 - 1)) / 10 * 50), my+((math.random(30, 100) / 100 * carlschut * (math.random(0, 1) * 2 - 1)) / 10 * 50)}
 
       carlschut = 40 + carlschut / 4
       carlammo = carlammo - 1
@@ -388,10 +389,11 @@ function love.update(dt)
           playMusic('carltheme', 0.9)
         end)
       else
-        objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*1500, math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*2000)
+        objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1] / 40 - carlschutloc[1] / 40), 2), -2) * 1500,
+        math.max(math.min((carlschutorigin[2] / 40 - carlschutloc[2] / 40), 2), -2) * 2000)
         
-        local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
-        carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
+        local multipliedloc = {carlschutloc[1] + (carlschutloc[1] - carlschutorigin[1]) * 2000,
+        carlschutloc[2] + (carlschutloc[2] - carlschutorigin[2]) * 2000}
 
         local lowestdist = {nil, nil}
 
@@ -408,8 +410,8 @@ function love.update(dt)
         if lowestdist[2] ~= nil then
           local body = lowestdist[2]:getBody()
 
-          local xforce = math.max(math.min((carlschutorigin[1]/40-carlschutloc[1]/40), 2), -2)*-1500
-          local yforce = math.max(math.min((carlschutorigin[2]/40-carlschutloc[2]/40), 2), -2)*-1500
+          local xforce = math.max(math.min((carlschutorigin[1] / 40 - carlschutloc[1] / 40), 2), -2) * -1500
+          local yforce = math.max(math.min((carlschutorigin[2] / 40 - carlschutloc[2] / 40), 2), -2) * -1500
 
           if body:getType() == "dynamic" then
             body:applyForce(xforce, yforce)
@@ -417,7 +419,7 @@ function love.update(dt)
         end
       end
 
-    playSound('shotgun_fire'..math.random(1,2), 0.5)
+    playSound('shotgun_fire'..math.random(1, 2), 0.5)
     end
   elseif carlammo == 0 then
     carlammo = -1
@@ -425,8 +427,8 @@ function love.update(dt)
     madecocksfx = false
   end
 
-  if carlschut > 0 then 
-    carlschut = carlschut - dt*64
+  if carlschut > 0 then
+    carlschut = carlschut - dt * 64
   else
     carlschut = 0
   end
@@ -447,21 +449,23 @@ function love.update(dt)
 end
 
 function love.draw()
+  -- everything is reset incase dum jilly forgets
   love.graphics.setFont(fonts[1])
+  love.graphics.setColor(1, 1, 1)
+  love.graphics.setLineWidth(1)
+
+  -- blinnk
   if not pause then carlblink = carlblink + 1 end
+  
+  -- camera stuff
   worldcam:attach()
-
-  love.graphics.push()
-
-  -- janky solution time
   local zoomease = ease.outExpo(love.timer.getTime() - recentpause, pause and 1 or 1.2, 0.2 * (pause and 1 or -1), 0.35)
   local rotease = ease.outExpo(love.timer.getTime() - recentpause, pause and 0 or 0.2, 0.2 * (pause and 1 or -1), 0.4)
   worldcam:rotateTo(rotease)
   worldcam:zoomTo((zoomease + zoom) * love.graphics.getWidth()/10 / 120)
 
+  -- pass the rendering to rendering.lua
   rendering.renderWorld(worldcam)
-
-  love.graphics.pop()
 
   worldcam:detach()
 
@@ -469,6 +473,7 @@ function love.draw()
     rendering:renderUI()
   end
 
+  -- tweens are done horribly. please ignore for the time being
   if ontitlescreen then
     titlescreentweenstart = gametime
   else
@@ -477,28 +482,36 @@ function love.draw()
     end
   end
 
+  -- title screen
   love.graphics.setFont(fonts[3])
+
   local tween = ease.inOutSine(gametime-titlescreentweenstart, 0, 1, 2)
+
   for _,o in ipairs({{0,1},{1,0},{1,1},{1,-1}}) do
     love.graphics.setColor(0,0,0,1-tween)
     love.graphics.printf(demo and 'Колобок' or 'Carl', 0+o[1], 90+o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
     love.graphics.printf(demo and 'Колобок' or 'Carl', 0-o[1], 90-o[2]-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
   end
+
   love.graphics.setColor(1,1,1,1-tween)
   love.graphics.printf(demo and 'Колобок' or 'Carl', 0, 90-tween*(80+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
 
   love.graphics.setFont(fonts[1])
   love.graphics.printf('Press M1 to start', 0, (1-tween)*(90+10+fonts[3]:getHeight()), love.graphics.getWidth(), 'center')
 
-  if pause and not love.keyboard.isDown('tab') then
+  -- render pause screen
+  if pause and not ctrl:isDown('pausepeek') then
     rendering:renderPause()
   end
 
+  -- fadein
   love.graphics.setColor(1,1,1,1-(gametime-0))
   love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 end
 
 function ctrl:inputpressed(name, value)
+  carlblink = 0
+
   if name == 'reset' and not carldead and not ontitlescreen and not ineditor then
     killcarl()
   elseif name == 'reload' then
@@ -520,8 +533,8 @@ function ctrl:inputpressed(name, value)
     love.window.setFullscreen(not love.window.getFullscreen())
   elseif name == 'pause' and not ontitlescreen then
     pause = not pause
-    resetMusic('carltheme', pause and 0.4 or 0.9)
-    recentpause = love.timer.getTime()
+    resetMusic('carltheme', pause and 0.4 or 0.9) -- set the music to be quieter
+    recentpause = love.timer.getTime() -- for tweens
   end
 end
 

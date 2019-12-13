@@ -49,20 +49,22 @@ this.renderWorld = function(camera)
     love.graphics.setColor(1, 198/255, 13/255)
 
     if carlweapon == 2 and not ineditor then
+      -- fists
+      -- oh no
       love.graphics.circle('fill', objects.ball.body:getX() + math.cos(carlrot) * objects.ball.shape:getRadius(), objects.ball.body:getY() + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
       love.graphics.setColor(0.1,0.1,0.1)
       love.graphics.circle('line', objects.ball.body:getX() + math.cos(carlrot) * objects.ball.shape:getRadius(), objects.ball.body:getY() + math.sin(carlrot) * objects.ball.shape:getRadius(), objects.ball.shape:getRadius()/2)
       love.graphics.setColor(1, 198/255, 13/255)
     end
 
+    -- the ball
     love.graphics.circle("fill", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
 
-    love.graphics.setColor((aimpos[3] and not ineditor) and {0.9,0.9,0.9} or {0.1,0.1,0.1})
+    love.graphics.setColor((aimpos[3] and not ineditor) and {0.9,0.9,0.9} or {0.1,0.1,0.1}) -- change the outline if its hardening
     love.graphics.circle("line", objects.ball.body:getX(), objects.ball.body:getY(), objects.ball.shape:getRadius())
 
-    
-    
     love.graphics.setColor(1,1,1)
+    -- eyes rendering
     if not seedebug then
       local eyex = objects.ball.body:getX()-objects.ball.shape:getRadius() * (carlflipped and 1 or -1)
       local eyey = objects.ball.body:getY()-objects.ball.shape:getRadius()
@@ -84,6 +86,7 @@ this.renderWorld = function(camera)
       end
     end
   else
+    -- if carl is dying, render a (non-working!!!!) tween of him dying
     eyes = sprites["carleyescry"]
     local yoff = ease.outQuad(gametime-recentdeath, 0, 1, 0.6)*200
 
@@ -140,17 +143,19 @@ this.renderWorld = function(camera)
     gun = sprites["bat"]
   end
 
-  local gunscale = (objects.ball.shape:getRadius()*3)/gun:getWidth()
-
-  local gunshotdistance = {carlschutorigin[1]-carlschutloc[1], carlschutorigin[2]-carlschutloc[2]}
+  local gunscale = (objects.ball.shape:getRadius() * 3) / gun:getWidth()
 
   love.graphics.setColor(1,1,1,carlschut/40)
+
   if carlschut > 0 and carlweapon == 0 and carlschutorigin ~= carlschutloc then
+    -- multiply the location so the ray doesnt stop at where youre aiming (thank you box2d for making me do this)
     local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
     carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
 
+    -- get the lowest dist manually (thanks once again box2d)
     local lowestdist = {nil, {multipliedloc[1], multipliedloc[2]}}
 
+    -- cast the ray
     world:rayCast(carlschutorigin[1], carlschutorigin[2], multipliedloc[1], multipliedloc[2], function(_, x, y)
       local dist = math.abs(carlschutorigin[1] - x) + math.abs(carlschutorigin[2] - y)
 
@@ -158,6 +163,7 @@ this.renderWorld = function(camera)
         lowestdist = {dist, {x, y}}
       end
 
+      -- stop the ray on ANY collision
       return 1
     end)
 
@@ -167,6 +173,7 @@ this.renderWorld = function(camera)
   love.graphics.setColor(1,1,1)
   if not carldead and not ineditor then
     if carlweapon ~= 2 then
+      -- fuck this code btw
       love.graphics.draw(gun, objects.ball.body:getX() - math.cos(carlrot) * carlschut/5, objects.ball.body:getY() - math.sin(carlrot) * carlschut/5, carlrot, gunscale, gunscale * (carlflipped and 1 or -1))
     end
   end
@@ -176,22 +183,24 @@ local lasthover = 0
 
 this.renderPause = function()
   love.graphics.setFont(fonts[2])
-  local buttonwidth = love.graphics.getWidth()/3
-  local buttonheight = love.graphics.getHeight()/20
-  local buttonx = (love.graphics.getWidth()-buttonwidth)/2
+
+  local buttonwidth = love.graphics.getWidth() / 3
+  local buttonheight = love.graphics.getHeight() / 20
+  local buttonx = (love.graphics.getWidth() - buttonwidth) / 2
 
   local centeredoffset = (love.graphics.getHeight()-(buttonheight+10)*#buttons-10)/2
 
-  love.graphics.setColor(0.12, 0.12, 0.12, math.min((love.timer.getTime()-recentpause)*3, 0.4))
+  love.graphics.setColor(0.12, 0.12, 0.12, math.min((love.timer.getTime() - recentpause) * 3, 0.4))
   love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
 
   local mouseonbuttoncheck = false
 
   for i,b in ipairs(buttons) do
+    -- FUCK tweens
     local thisheight = -buttonheight + ease.outExpo(love.timer.getTime()-recentpause, -centeredoffset/(i*(buttonheight+10)), centeredoffset/(i*(buttonheight+10))+1, 1)*(i*(buttonheight+10)) + centeredoffset -- GOD i hate this code
 
     love.graphics.push()
-    love.graphics.translate(buttonx+buttonwidth/2, thisheight+buttonheight/2)
+    love.graphics.translate(buttonx + buttonwidth / 2, thisheight + buttonheight / 2)
     if mouseInBox(buttonx, thisheight, buttonwidth, buttonheight) then
       mouseonbuttoncheck = i
       if not pointInBox(oldmousepos[1], oldmousepos[2], buttonx, thisheight, buttonwidth, buttonheight) then
@@ -200,7 +209,7 @@ this.renderPause = function()
       end
 
       if love.timer.getTime()-lasthover < 0.2 then
-        love.graphics.scale(ease.outCirc(love.timer.getTime()-lasthover, 1, 0.05, 0.2))
+        love.graphics.scale(ease.outCirc(love.timer.getTime() - lasthover, 1, 0.05, 0.2))
       else
         love.graphics.scale(1.05)
       end
@@ -209,13 +218,13 @@ this.renderPause = function()
         love.graphics.rotate(0.1)
       end
     end
-    love.graphics.translate(-buttonx-buttonwidth/2, -thisheight-buttonheight/2)
+    love.graphics.translate(-buttonx - buttonwidth / 2, -thisheight - buttonheight / 2)
 
     love.graphics.setColor(0,0,0)
     love.graphics.rectangle('fill', buttonx, thisheight, buttonwidth, buttonheight)
     love.graphics.setColor(1,1,1)
     love.graphics.rectangle('line', buttonx, thisheight, buttonwidth, buttonheight)
-    love.graphics.printf(b, buttonx, thisheight+buttonheight/2-(love.graphics.getFont():getHeight())/2, buttonwidth, 'center')
+    love.graphics.printf(b, buttonx, thisheight + buttonheight / 2 - (love.graphics.getFont():getHeight()) / 2, buttonwidth, 'center')
 
     love.graphics.pop()
   end
@@ -225,6 +234,7 @@ end
 
 this.renderUI = function()
   if not pause and not ineditor then
+    -- render the selector thingy
     local canschut = carlschut < 10
     love.graphics.push()
     love.graphics.translate(aimpos[1], aimpos[2])
@@ -242,19 +252,21 @@ this.renderUI = function()
   end
 
   if ineditor then
+    -- editor buttons!
     love.graphics.setColor(0.45,0.45,0.45)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), 50)
     love.graphics.setColor(0.3,0.3,0.3)
     love.graphics.line(0, 50, love.graphics.getWidth(), 50)
 
-    local i;
-    for i=0,3 do
+    local i
+    for i = 0,3 do
       love.graphics.setColor(0.4,0.4,0.4)
-      love.graphics.rectangle('fill', 5 + i*(40+2), 5, 40, 40)
+      love.graphics.rectangle('fill', 5 + i * (40 + 2), 5, 40, 40)
     end
   end
 
   if seedebug then
+    -- debug stuff
     local carlx, carly = worldcam:cameraCoords(objects.ball.body:getX(), objects.ball.body:getY())
     local velx, vely = objects.ball.body:getLinearVelocity()
 
