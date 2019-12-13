@@ -32,7 +32,10 @@ this.renderWorld = function(camera)
   -- carl
   local mx, my = camera:worldCoords(aimpos[1], aimpos[2])
   local carlx, carly = objects.ball.body:getPosition()
+
   local carlrot = math.round(math.atan2(my-carly, mx-carlx) * 30) / 30
+  local carlschutrot = math.round(math.atan2(carlschutloc[2]-carlschutorigin[2], carlschutloc[1]-carlschutorigin[1]) * 30) / 30
+
   local carlflipped = math.abs(carlrot) < math.pi/2
 
   carlx = math.round(carlx)
@@ -148,6 +151,7 @@ this.renderWorld = function(camera)
   end
 
   local gunscale = math.round((objects.ball.shape:getRadius() * 3) / gun:getWidth() * 10) / 10
+  local gunwidth = gun:getWidth() * gunscale
 
   love.graphics.setColor(1,1,1,carlschut/40)
 
@@ -156,11 +160,14 @@ this.renderWorld = function(camera)
     local multipliedloc = {carlschutloc[1] + (carlschutloc[1]-carlschutorigin[1])*2000,
     carlschutloc[2] + (carlschutloc[2]-carlschutorigin[2])*2000}
 
+    -- the bullet needs to come out of the gun, not out of carl
+    local schutoriginoffset = {carlschutorigin[1] + math.cos(carlschutrot) * gunwidth, carlschutorigin[2] + math.sin(carlschutrot) * gunwidth}
+
     -- get the lowest dist manually (thanks once again box2d)
     local lowestdist = {nil, {multipliedloc[1], multipliedloc[2]}}
 
     -- cast the ray
-    world:rayCast(carlschutorigin[1], carlschutorigin[2], multipliedloc[1], multipliedloc[2], function(_, x, y)
+    world:rayCast(schutoriginoffset[1], schutoriginoffset[2], multipliedloc[1], multipliedloc[2], function(_, x, y)
       local dist = math.abs(carlschutorigin[1] - x) + math.abs(carlschutorigin[2] - y)
 
       if lowestdist[1] == nil or dist < lowestdist[1] then
@@ -171,7 +178,7 @@ this.renderWorld = function(camera)
       return 1
     end)
 
-    love.graphics.line(carlschutorigin[1], carlschutorigin[2], lowestdist[2][1], lowestdist[2][2])
+    love.graphics.line(schutoriginoffset[1], schutoriginoffset[2], lowestdist[2][1], lowestdist[2][2])
   end
 
   love.graphics.setColor(1,1,1)

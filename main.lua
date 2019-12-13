@@ -374,7 +374,7 @@ function love.update(dt)
       local gunwidth = objects.ball.shape:getRadius()*3
       local mx,my = worldcam:mousePosition()
       local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
-      carlschutorigin = {objects.ball.body:getX()+math.cos(carlrot)*gunwidth, objects.ball.body:getY()+math.sin(carlrot)*gunwidth}
+      carlschutorigin = {objects.ball.body:getX(), objects.ball.body:getY()}
       carlschutloc = {mx + ((math.random(30, 100) / 100 * carlschut * (math.random(0, 1) * 2 - 1)) / 10 * 50), my+((math.random(30, 100) / 100 * carlschut * (math.random(0, 1) * 2 - 1)) / 10 * 50)}
 
       carlschut = 40 + carlschut / 4
