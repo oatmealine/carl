@@ -662,8 +662,7 @@ function love.wheelmoved(x, y)
   if ineditor and y ~= 0 then
     zoom = zoom + y/12
   else
-    -- carlweapon = (carlweapon + y)%3
-    speed = speed + y/10
+    carlweapon = (carlweapon + y)%3
   end
 end
 
