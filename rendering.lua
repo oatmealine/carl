@@ -313,6 +313,23 @@ this.renderUI = function()
 
         love.graphics.setColor(1, 1, 0, 0.5)
         love.graphics.rectangle('fill', pos[1], pos[2], width, height)
+      elseif tool == 3 then
+        if toolprop ~= nil then
+          for i,b in ipairs(toolprop) do
+            love.graphics.setColor(1, 1, 0, 0.7)
+            love.graphics.circle('fill', b[1], b[2], 3)
+            if toolprop[i + 1] then
+              love.graphics.line(b[1], b[2], toolprop[i + 1][1], toolprop[i + 1][2])
+            end
+          end
+
+          love.graphics.setColor(1, 1, 0, 0.5)
+          love.graphics.line(toolprop[#toolprop][1], toolprop[#toolprop][2], mx, my)
+          love.graphics.circle('fill', mx, my, 3)
+        else
+          love.graphics.setColor(1, 1, 0, 0.5)
+          love.graphics.circle('fill', mx, my, 3)
+        end
       end
     end
     worldcam:detach()

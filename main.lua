@@ -109,13 +109,17 @@ function editorcreateshape()
     shape = love.physics.newRectangleShape(width, height)
     type = "rectangle"
   elseif tool == 3 then
-    --[[local vertices = {}
-    for _,v in ipairs(obj.vertices) do
-      table.insert(vertices, v[1])
-      table.insert(vertices, v[2])
+    local x, y = worldcam:worldCoords(toolprop[1][1], toolprop[1][2])
+
+    local vertices = {}
+    for _,v in ipairs(toolprop) do
+      table.insert(vertices, v[1] - x)
+      table.insert(vertices, v[2] - y)
     end
 
-    shape = love.physics.newPolygonShape(vertices)]]
+    body = love.physics.newBody(world, x, y)
+    shape = love.physics.newPolygonShape(vertices)
+    type = "polygon"
   else
     error("invalid object type (must be rectangle, polygon or circle)")
   end
@@ -598,8 +602,10 @@ function ctrl:inputpressed(name, value)
     carldead = false
     carlcanjump = true
     love.mouse.setVisible(ineditor)
-    world:destroy()
-    world = loadMap(json.decode(love.filesystem.read('level.json')))
+
+    objects.ball.body:setPosition(carlcheck[1], carlcheck[2])
+    objects.ball.body:setLinearVelocity(0, 0)
+    objects.ball.body:setType(ineditor and "static" or "dynamic")
   elseif name == 'debug' then
     seedebug = not seedebug
   elseif name == 'fullscreen' then
@@ -624,15 +630,34 @@ function love.mousepressed(x, y, button)
   end
 
   if love.mouse.getY() > 50 and ineditor then
-    if button == 1 and toolprop == nil then
+    if button == 1 then
       if tool == 1 or tool == 2 then
         local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
         toolprop = {x, y}
+      end
+
+      if tool == 3 then
+        local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+        if toolprop == nil then toolprop = {} end
+        table.insert(toolprop, {x, y})
+
+        if #toolprop == 8 then
+          editorcreateshape()
+          toolprop = nil
+        end
       end
     elseif button == 2 then
       if toolprop ~= nil then
         if tool == 1 or tool == 2 then
           toolprop = nil
+        end
+
+        if tool == 3 then
+          if #toolprop >= 3 then
+            editorcreateshape()
+          else
+            toolprop = nil
+          end
         end
       elseif tool == 0 then
         for _,i in ipairs(world:getBodies()) do
