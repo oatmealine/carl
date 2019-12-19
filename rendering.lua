@@ -315,20 +315,39 @@ this.renderUI = function()
         love.graphics.rectangle('fill', pos[1], pos[2], width, height)
       elseif tool == 3 then
         if toolprop ~= nil then
+          love.graphics.setLineWidth(3)
+
+          local vertices = {}
+
           for i,b in ipairs(toolprop) do
             love.graphics.setColor(1, 1, 0, 0.7)
-            love.graphics.circle('fill', b[1], b[2], 3)
+            love.graphics.circle('fill', b[1], b[2], 6)
             if toolprop[i + 1] then
               love.graphics.line(b[1], b[2], toolprop[i + 1][1], toolprop[i + 1][2])
             end
+
+            table.insert(vertices, b[1])
+            table.insert(vertices, b[2])
+          end
+
+          if #toolprop >= 3 and love.math.isConvex(vertices) then
+            love.graphics.setColor(1, 1, 0, 0.4)
+            love.graphics.polygon('fill', vertices)
+            love.graphics.setColor(1, 1, 0, 0.5)
+            love.graphics.polygon('line', vertices)
+          end
+
+          if #toolprop >= 3 then
+            love.graphics.setColor(1, 1, 0, 0.5)
+            love.graphics.line(mx, my, toolprop[1][1], toolprop[1][2])
           end
 
           love.graphics.setColor(1, 1, 0, 0.5)
           love.graphics.line(toolprop[#toolprop][1], toolprop[#toolprop][2], mx, my)
-          love.graphics.circle('fill', mx, my, 3)
+          love.graphics.circle('fill', mx, my, 6)
         else
           love.graphics.setColor(1, 1, 0, 0.5)
-          love.graphics.circle('fill', mx, my, 3)
+          love.graphics.circle('fill', mx, my, 6)
         end
       end
     end
@@ -338,6 +357,7 @@ this.renderUI = function()
     love.graphics.setColor(0.45,0.45,0.45)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), 50)
     love.graphics.setColor(0.3,0.3,0.3)
+    love.graphics.setLineWidth(1)
     love.graphics.line(0, 50, love.graphics.getWidth(), 50)
 
     local i
