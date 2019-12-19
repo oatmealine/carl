@@ -298,7 +298,7 @@ this.renderUI = function()
       love.graphics.setColor(1, 1, 0, 0.5)
       love.graphics.circle('fill', pos[1], pos[2], radius)
     end
-    
+
     -- editor buttons!
     love.graphics.setColor(0.45,0.45,0.45)
     love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), 50)
@@ -307,8 +307,12 @@ this.renderUI = function()
 
     local i
     for i = 0,3 do
+      local bright = mouseInBox(5 + i * (40 + 2), 5, 40, 40) and 1 or 0.8
+
       love.graphics.setColor(0.4,0.4,0.4)
       love.graphics.rectangle('fill', 5 + i * (40 + 2), 5, 40, 40)
+      love.graphics.setColor(bright, bright, bright)
+      love.graphics.draw(sprites['editorbutton'..i], 5 + i * (40 + 2), 5)
     end
   end
 
