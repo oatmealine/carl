@@ -16,12 +16,9 @@ function renderCarl(x, y, alpha, camera)
 
   local mx, my = camera:worldCoords(aimpos[1], aimpos[2])
 
-  local carlrot = math.round(math.atan2(my-carly, mx-carlx) * 30) / 30
+  local carlrot = math.atan2(my-carly, mx-carlx)
 
   local carlflipped = math.abs(carlrot) < math.pi/2
-
-  carlx = math.round(carlx)
-  carly = math.round(carly)
 
   local eyes = sprites['carleyes']
 
@@ -169,12 +166,12 @@ this.renderWorld = function(camera)
     gun = sprites["bat"]
   end
 
-  local gunscale = math.round((objects.ball.shape:getRadius() * 3) / gun:getWidth() * 10) / 10
+  local gunscale = (objects.ball.shape:getRadius() * 3) / gun:getWidth()
   local gunwidth = gun:getWidth() * gunscale
   
   local mx, my = camera:worldCoords(aimpos[1], aimpos[2])
-  local carlrot = math.round(math.atan2(my-carly, mx-carlx) * 30) / 30
-  local carlschutrot = math.round(math.atan2(carlschutloc[2]-carlschutorigin[2], carlschutloc[1]-carlschutorigin[1]) * 30) / 30
+  local carlrot = math.atan2(my-carly, mx-carlx)
+  local carlschutrot = math.atan2(carlschutloc[2]-carlschutorigin[2], carlschutloc[1]-carlschutorigin[1])
 
   love.graphics.setColor(1,1,1,carlschut/40)
 
