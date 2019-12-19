@@ -46,6 +46,8 @@ oldmousepos = {love.mouse.getX(), love.mouse.getY()} -- old mouse position, for 
 
 aimpos = {0, 0, false} -- where carl is aiming (for pause compatability)
 
+oldcarlpos = {nil, nil} -- for the carl trail
+
 pause = false -- if the game is paused or not
 gametime = 0 -- game timer
 recentpause = 0 -- tween stuff
@@ -56,6 +58,9 @@ titlescreentweenstart = -90 -- tween stuff
 madecocksfx = true -- whether the cock sfx has been made yet or not
 
 local zoom = 0 -- editor zoom amount
+speed = 1.0 -- game speed (experimental)
+tool = 0 -- editor tool
+toolprop = nil -- properties of the tool
 
 -- temp
 level = json.decode(love.filesystem.read('level.json'))
@@ -80,6 +85,49 @@ end,function()
   love.event.quit()
 end}
 mouseonbutton = false
+
+function editorcreateshape()
+  local body
+  local shape
+  local fixture
+
+  local type
+      
+  if tool == 3 then
+    -- shape = love.physics.newRectangleShape(obj.width, obj.height)
+  elseif tool == 2 then
+    --[[local vertices = {}
+    for _,v in ipairs(obj.vertices) do
+      table.insert(vertices, v[1])
+      table.insert(vertices, v[2])
+    end
+
+    shape = love.physics.newPolygonShape(vertices)]]
+  elseif tool == 1 then
+    local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+    local x2, y2 = worldcam:worldCoords(toolprop[1], toolprop[2])
+
+    body = love.physics.newBody(world, x2, y2, "static")
+    shape = love.physics.newCircleShape(math.abs(love.mouse.getX() - toolprop[1]) + math.abs(love.mouse.getY() - toolprop[2]))
+    type = "circle"
+  else
+    error("invalid object type (must be rectangle, polygon or circle)")
+  end
+
+  fixture = love.physics.newFixture(body, shape)
+  fixture:setFriction(0.5)
+  fixture:setMask(2)
+      
+  body:setUserData({
+    color = {1, 1, 0},
+    type = type,
+  })
+
+  table.insert(objects.grounds, {
+    body = body, shape = shape, fixture = fixture
+  })
+  toolprop = nil
+end
 
 function killcarl()
   if carldead then return end
@@ -303,6 +351,9 @@ end
 
 
 function love.update(dt)
+  -- game speed
+  dt = dt * speed
+
   -- update stuff
   timer.update(dt)
   love.mouse.setVisible(pause or ineditor)
@@ -311,6 +362,15 @@ function love.update(dt)
   -- if its paused just stop there
   if pause then return end
   gametimer.update(dt)
+  
+  -- carl trail
+  local vx, vy = objects.ball.body:getLinearVelocity()
+  if math.abs(vx) + math.abs(vy) > 1200 then
+    oldcarlpos = {objects.ball.body:getX(), objects.ball.body:getY()}
+  else
+    oldcarlpos = {nil, nil}
+  end
+
   world:update(dt)
   gametime = gametime + dt
 
@@ -348,7 +408,7 @@ function love.update(dt)
       local x,y = objects.ball.body:getPosition()
       objects.ball.body:setPosition(x, y - dt * 1000 * ctrl:getValue("jump"))
     else
-      objects.ball.body:applyForce(0, -JUMPFORCE)
+      objects.ball.body:applyForce(0, -JUMPFORCE/speed)
       carlcanjump = false
     end
   end
@@ -389,8 +449,8 @@ function love.update(dt)
           playMusic('carltheme', 0.9)
         end)
       else
-        objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1] / 40 - carlschutloc[1] / 40), 2), -2) * 1500,
-        math.max(math.min((carlschutorigin[2] / 40 - carlschutloc[2] / 40), 2), -2) * 2000)
+        objects.ball.body:applyForce(math.max(math.min((carlschutorigin[1] / 40 - carlschutloc[1] / 40), 2), -2) * 1500 / speed,
+        math.max(math.min((carlschutorigin[2] / 40 - carlschutloc[2] / 40), 2), -2) * 2000 / speed)
         
         local multipliedloc = {carlschutloc[1] + (carlschutloc[1] - carlschutorigin[1]) * 2000,
         carlschutloc[2] + (carlschutloc[2] - carlschutorigin[2]) * 2000}
@@ -414,7 +474,7 @@ function love.update(dt)
           local yforce = math.max(math.min((carlschutorigin[2] / 40 - carlschutloc[2] / 40), 2), -2) * -1500
 
           if body:getType() == "dynamic" then
-            body:applyForce(xforce, yforce)
+            body:applyForce(xforce/speed, yforce/speed)
           end
         end
       end
@@ -445,6 +505,13 @@ function love.update(dt)
     madecocksfx = true
     carlammo = 5
     playSound('shotgun_cock', 0.4)
+  end
+
+  -- remove each destroyed object
+  for i,obj in ipairs(objects.grounds) do
+    if obj.body:isDestroyed() or obj.fixture:isDestroyed() then
+      table.remove(objects.grounds, i)
+    end
   end
 end
 
@@ -538,7 +605,50 @@ function ctrl:inputpressed(name, value)
   end
 end
 
+function love.mousepressed(x, y, button)
+  local i
+  for i = 0,3 do
+    if ineditor and mouseInBox(5 + i * (40 + 2), 5, 40, 40) and button == 1 then
+      tool = i
+    end
+  end
+
+  if button == 3 then
+    speed = 1
+  end
+
+  if love.mouse.getY() > 50 and ineditor then
+    if button == 1 and toolprop == nil then
+      if tool == 1 then
+        toolprop = {love.mouse.getX(), love.mouse.getY()}
+      end
+    elseif button == 2 then
+      if toolprop ~= nil then
+        if tool == 1 then
+          toolprop = nil
+        end
+      else
+        for _,i in ipairs(world:getBodies()) do
+          for _,b in ipairs(i:getFixtures()) do
+            local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+            if b:testPoint(x, y) then
+              b:destroy()
+              print('destroyed body')
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 function love.mousereleased(x, y, m)
+  if m == 1 and ineditor and toolprop ~= nil then
+    if tool == 1 then
+      editorcreateshape()
+    end
+  end
+
   if m == 1 and mouseonbutton ~= false and pause then
     buttonactions[mouseonbutton]()
   end
@@ -552,7 +662,8 @@ function love.wheelmoved(x, y)
   if ineditor and y ~= 0 then
     zoom = zoom + y/12
   else
-    carlweapon = (carlweapon + y)%3
+    -- carlweapon = (carlweapon + y)%3
+    speed = speed + y/10
   end
 end
 
