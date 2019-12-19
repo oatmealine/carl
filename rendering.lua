@@ -145,7 +145,7 @@ this.renderWorld = function(camera)
     if g.body:isDestroyed() then return end
     local data = g.body:getUserData()
 
-    if data.type == "circle" then
+    if g.shape:type() == "CircleShape" then
       local x,y = g.body:getPosition()
       love.graphics.setColor(data.color)
       love.graphics.circle('fill', x, y, g.shape:getRadius())

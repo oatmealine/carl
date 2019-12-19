@@ -166,6 +166,58 @@ function killcarl()
   end)
 end
 
+function exportMap()
+  -- just set some defaults
+  local level = {
+    grass = {
+
+    },
+    properties = {
+      sky = "normal",
+      spawnloc = {400, 400}
+    }
+  }
+
+  -- export each ground object
+  for _,gr in ipairs(objects.grounds) do
+    local data = gr.body:getUserData()
+    local obj = {
+      type = data.type,
+      x = math.round(gr.body:getX()),
+      y = math.round(gr.body:getY()),
+      color = data.color
+    }
+
+    if data.type == "circle" then
+      obj.radius = math.round(gr.shape:getRadius())
+    elseif data.type == "rectangle" then
+      -- here we just trust the data saying its a rectangle. this will fail MASSIVELY if it isnt
+      local points = table.pack(gr.shape:getPoints())
+      obj.width = math.abs(math.round(points[1] - points[3]))
+      obj.height = math.abs(math.round(points[2] - points[8]))
+    elseif data.type == "polygon" then
+      local points = table.pack(gr.shape:getPoints())
+
+      local vertices = {}
+      for i=1, #points/2 do
+        table.insert(vertices, {math.round(points[i*2-1]), math.round(points[i*2])})
+
+        print(points[i*2-1], points[i*2])
+        print(unpack(vertices[i]))
+      end
+
+      obj.vertices = vertices
+    end
+
+    table.insert(level.grass, obj)
+  end
+
+  -- export spawn location
+  level.properties.spawnloc = carlcheck
+
+  return level
+end
+
 function loadMap(lvl)
   -- remove all objects
   objects = {}
@@ -617,7 +669,15 @@ function ctrl:inputpressed(name, value)
   end
 end
 
+function love.keypressed(key)
+  -- saving
+  if key == 's' and love.keyboard.isDown('lctrl') and ineditor then
+    love.filesystem.write('level.json', json.encode(exportMap()))
+  end
+end
+
 function love.mousepressed(x, y, button)
+  --tool selection
   local i
   for i = 0,3 do
     if ineditor and mouseInBox(5 + i * (40 + 2), 5, 40, 40) and button == 1 then
@@ -625,33 +685,42 @@ function love.mousepressed(x, y, button)
     end
   end
 
+  -- speed resetting
   if button == 3 then
     speed = 1
   end
 
+  -- object manipulation
   if love.mouse.getY() > 50 and ineditor then
+    -- placing
     if button == 1 then
+      local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+
+      -- rectangles & circles
       if tool == 1 or tool == 2 then
-        local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
         toolprop = {x, y}
       end
 
+      -- polygons
       if tool == 3 then
-        local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
         if toolprop == nil then toolprop = {} end
         table.insert(toolprop, {x, y})
 
+        -- max out vertices at 8
         if #toolprop == 8 then
           editorcreateshape()
           toolprop = nil
         end
       end
     elseif button == 2 then
+      -- deleting & undoing placements
       if toolprop ~= nil then
+        -- circles and rectangles get cancelled on right click
         if tool == 1 or tool == 2 then
           toolprop = nil
         end
 
+        -- polygons only get cancelled if its an incomplete polygon
         if tool == 3 then
           if #toolprop >= 3 then
             editorcreateshape()
@@ -660,6 +729,7 @@ function love.mousepressed(x, y, button)
           end
         end
       elseif tool == 0 then
+        -- deletion
         for _,i in ipairs(world:getBodies()) do
           for _,b in ipairs(i:getFixtures()) do
             local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())

@@ -30,3 +30,7 @@ function math.round(num)
     return math.floor(num)
   end
 end
+
+function table.pack(...)
+    return {...}
+end
