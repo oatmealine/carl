@@ -93,9 +93,22 @@ function editorcreateshape()
 
   local type
       
-  if tool == 3 then
-    -- shape = love.physics.newRectangleShape(obj.width, obj.height)
+  if tool == 1 then
+    local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+    local x2, y2 = toolprop[1], toolprop[2]
+
+    body = love.physics.newBody(world, x2, y2, "static")
+    shape = love.physics.newCircleShape(math.abs(x - x2) + math.abs(y - y2))
+    type = "circle"
   elseif tool == 2 then
+    local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+    local width = (x - toolprop[1])
+    local height = (y - toolprop[2])
+
+    body = love.physics.newBody(world, x - width/2, y - height/2)
+    shape = love.physics.newRectangleShape(width, height)
+    type = "rectangle"
+  elseif tool == 3 then
     --[[local vertices = {}
     for _,v in ipairs(obj.vertices) do
       table.insert(vertices, v[1])
@@ -103,13 +116,6 @@ function editorcreateshape()
     end
 
     shape = love.physics.newPolygonShape(vertices)]]
-  elseif tool == 1 then
-    local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
-    local x2, y2 = worldcam:worldCoords(toolprop[1], toolprop[2])
-
-    body = love.physics.newBody(world, x2, y2, "static")
-    shape = love.physics.newCircleShape(math.abs(love.mouse.getX() - toolprop[1]) + math.abs(love.mouse.getY() - toolprop[2]))
-    type = "circle"
   else
     error("invalid object type (must be rectangle, polygon or circle)")
   end
@@ -619,15 +625,16 @@ function love.mousepressed(x, y, button)
 
   if love.mouse.getY() > 50 and ineditor then
     if button == 1 and toolprop == nil then
-      if tool == 1 then
-        toolprop = {love.mouse.getX(), love.mouse.getY()}
+      if tool == 1 or tool == 2 then
+        local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+        toolprop = {x, y}
       end
     elseif button == 2 then
       if toolprop ~= nil then
-        if tool == 1 then
+        if tool == 1 or tool == 2 then
           toolprop = nil
         end
-      else
+      elseif tool == 0 then
         for _,i in ipairs(world:getBodies()) do
           for _,b in ipairs(i:getFixtures()) do
             local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
@@ -644,7 +651,7 @@ end
 
 function love.mousereleased(x, y, m)
   if m == 1 and ineditor and toolprop ~= nil then
-    if tool == 1 then
+    if tool == 1 or tool == 2 then
       editorcreateshape()
     end
   end

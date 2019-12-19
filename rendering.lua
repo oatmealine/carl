@@ -287,17 +287,35 @@ this.renderUI = function()
 
   if ineditor then
     -- editor mouse stuff
+    worldcam:attach()
     if tool ~= 0 and love.mouse.getY() > 50 then
-      local radius = 6
-      local pos = {love.mouse.getX(), love.mouse.getY()}
-      if toolprop ~= nil then
-        radius = math.abs(love.mouse.getX() - toolprop[1]) + math.abs(love.mouse.getY() - toolprop[2])
-        pos = {toolprop[1], toolprop[2]}
-      end
+      local mx, my = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+      if tool == 1 then
+        local radius = 6
+        local pos = {mx, my}
+        if toolprop ~= nil then
+          radius = math.abs(mx - toolprop[1]) + math.abs(my - toolprop[2])
+          pos = {toolprop[1], toolprop[2]}
+        end
 
-      love.graphics.setColor(1, 1, 0, 0.5)
-      love.graphics.circle('fill', pos[1], pos[2], radius)
+        love.graphics.setColor(1, 1, 0, 0.5)
+        love.graphics.circle('fill', pos[1], pos[2], radius)
+      elseif tool == 2 then
+        local pos = {mx - 3, my - 3}
+        local width = 6
+        local height = 6
+
+        if toolprop ~= nil then
+          pos = {toolprop[1], toolprop[2]}
+          width = mx - toolprop[1]
+          height = my - toolprop[2]
+        end
+
+        love.graphics.setColor(1, 1, 0, 0.5)
+        love.graphics.rectangle('fill', pos[1], pos[2], width, height)
+      end
     end
+    worldcam:detach()
 
     -- editor buttons!
     love.graphics.setColor(0.45,0.45,0.45)
