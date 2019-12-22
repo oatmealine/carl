@@ -61,8 +61,8 @@ function renderCarl(x, y, alpha, camera)
         local camx, camy = worldcam:cameraCoords(carlx, carly)
 
         if not pause then
-          irisxoff = math.max(math.min((camx/40 - love.mouse.getX()/40), 2), -2)*-1
-          irisyoff = math.max(math.min((camy/40 - love.mouse.getY()/40), 2), -2)*-1.8
+          irisxoff = math.max(math.min((camx/40 - cursorx/40), 2), -2)*-1
+          irisyoff = math.max(math.min((camy/40 - cursory/40), 2), -2)*-1.8
         end
 
         love.graphics.draw(sprites['carleyesempty'], eyex, eyey, 0, eyescalex, eyescaley)
