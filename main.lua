@@ -728,7 +728,6 @@ function love.mousepressed(x, y, button)
       if tool == 1 or tool == 2 then
         toolprop = {x, y}
       end
-
       -- polygons
       if tool == 3 then
         if toolprop == nil then toolprop = {} end
@@ -738,6 +737,22 @@ function love.mousepressed(x, y, button)
         if #toolprop == 8 then
           editorcreateshape()
           toolprop = nil
+        end
+      end
+      -- dragging
+      if tool == 0 then
+        local body
+        local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+        for _,i in ipairs(world:getBodies()) do
+          for _,b in ipairs(i:getFixtures()) do
+            if b:testPoint(x, y) then
+              body = i
+            end
+          end
+        end
+
+        if body then
+          toolprop = {body:getX() - x, body:getY() - y, body}
         end
       end
     elseif button == 2 then
@@ -763,7 +778,6 @@ function love.mousepressed(x, y, button)
             local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
             if b:testPoint(x, y) then
               b:destroy()
-              print('destroyed body')
             end
           end
         end
@@ -776,6 +790,8 @@ function love.mousereleased(x, y, m)
   if m == 1 and ineditor and toolprop ~= nil then
     if tool == 1 or tool == 2 then
       editorcreateshape()
+    elseif tool == 0 then
+      toolprop = nil
     end
   end
 
@@ -788,6 +804,14 @@ function love.mousemoved(x, y, dx, dy)
   if dx ~= 0 and dy ~= 0 then
     carlblink = 0
     usingcursor = false
+  end
+
+  if ineditor and toolprop ~= nil and tool == 0 then
+    local body = toolprop[3]
+    x, y = worldcam:worldCoords(x, y)
+    
+    body:setPosition(x + toolprop[1], y + toolprop[2])
+    body:setLinearVelocity(0, 0)
   end
 end
 
