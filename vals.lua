@@ -3,7 +3,7 @@
 -- change this to true when presenting (for school project)
 demo = false
 
-mobileoverride = false
+mobileoverride = true
 
 -- how the gameplay feels
 GRAVITY = 9.81*64

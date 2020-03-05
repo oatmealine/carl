@@ -51,6 +51,8 @@ carlcheck = {400, 400} -- the last checkpoint carl was at
 
 oldmousepos = {love.mouse.getX(), love.mouse.getY()} -- old mouse position, for menu stuff
 
+touchpos = nil
+
 aimpos = {0, 0, false} -- where carl is aiming (for pause compatability)
 
 oldcarlpos = {nil, nil} -- for the carl trail
@@ -423,6 +425,10 @@ function love.load()
 
   if mobile then
     love.window.setMode(732, 412, {fullscreen = false})
+
+    if not mobileoverride then
+      love.window.setFullscreen(true)
+    end
   end
 
   print('boot took ' .. math.floor(love.timer.getTime() - upAt) .. 'ms!')
@@ -485,6 +491,10 @@ function love.update(dt)
   -- aiming position for rendering
   aimpos = {cursorx, cursory, ctrl:isDown('harden')}
 
+  if touchpos then
+    aimpos = {touchpos[1], touchpos[2], ctrl:isDown('harden')}
+  end
+
   -- camera positioning
   if gametime-titlescreentweenstart < 2 then
     worldcam:lockPosition(math.max(objects.ball.body:getX(), 100),
@@ -537,7 +547,7 @@ function love.update(dt)
   end
 
   -- shooting
-  if (ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor) and ((not joysticktouch == 'mouse') or ontitlescreen) then
+  if (ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor) and (joysticktouch ~= 'mouse' or ontitlescreen) then
     if carlweapon == 0 then
       local gunwidth = objects.ball.shape:getRadius()*3
       local mx,my = worldcam:worldCoords(cursorx, cursory)
@@ -862,6 +872,7 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
   if pointInBox(x, y, joystickx - joysticksize / 2, joysticky - joysticksize / 2, joysticksize, joysticksize) then
     joysticktouch = id
   else
+    touchpos = {x, y}
     love.mousepressed(x, y, 1)
   end
 end

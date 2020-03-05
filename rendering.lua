@@ -261,6 +261,9 @@ this.renderPause = function()
   end
   mouseonbutton = mouseonbuttoncheck
   oldmousepos = {love.mouse.getX(), love.mouse.getY()}
+  if touchpos then
+    oldmousepos = touchpos
+  end
 end
 
 this.renderUI = function()
@@ -443,7 +446,6 @@ this.renderUI = function()
     touchx = math.max(touchx, joystickx - joysticksize / 4)
     touchy = math.min(touchy, joysticky + joysticksize / 4)
     touchy = math.max(touchy, joysticky - joysticksize / 4)
-
 
     love.graphics.setColor(0.6, 0.6, 0.6)
     love.graphics.circle('fill', touchx, touchy, joysticksize / 4)
