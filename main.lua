@@ -167,6 +167,8 @@ function killcarl()
   madecocksfx = true
   carlschut = 0
 
+  love.system.vibrate(0.4)
+
   gametimer.during(0.6, function()
     objects.ball.body:setPosition(keepx, keepy)
     objects.ball.body:setLinearVelocity(0, 0)
@@ -466,6 +468,19 @@ function love.update(dt)
   -- controller control stuff
   if not usingcursor then
     cursorx, cursory = love.mouse.getPosition()
+  elseif mobile and not mobileoverride then
+    local touches = love.touch.getTouches()
+    local touchesNew
+
+    for _,t in ipairs(touches) do
+      if t == joysticktouch then return end
+
+      table.insert(touchesNew, t)
+    end
+
+    if touchesNew[1] then
+      cursorx, cursory = love.touch.getPosition(touchesNew[1])
+    end
   else
     cursorx = cursorx + ctrl:getValue('cursx') * 20
     cursory = cursory + ctrl:getValue('cursy') * 20
@@ -546,8 +561,18 @@ function love.update(dt)
     objects.ball.fixture:setDensity(1)
   end
 
+  local canshootjoystick = true
+
+  if joysticktouch ~= nil then
+    if #love.touch.getTouches() == 1 then
+      canshootjoystick = false
+    end
+  end
+
   -- shooting
-  if (ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor) and (joysticktouch ~= 'mouse' or ontitlescreen) then
+  if (ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor) and (canshootjoystick or ontitlescreen) then
+    love.system.vibrate(0.05)
+    
     if carlweapon == 0 then
       local gunwidth = objects.ball.shape:getRadius()*3
       local mx,my = worldcam:worldCoords(cursorx, cursory)
