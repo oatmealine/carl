@@ -469,18 +469,8 @@ function love.update(dt)
   if not usingcursor then
     cursorx, cursory = love.mouse.getPosition()
   elseif mobile and not mobileoverride then
-    local touches = love.touch.getTouches()
-    local touchesNew
-
-    for _,t in ipairs(touches) do
-      if t == joysticktouch then return end
-
-      table.insert(touchesNew, t)
-    end
-
-    if touchesNew[1] then
-      cursorx, cursory = love.touch.getPosition(touchesNew[1])
-    end
+    cursorx = touchpos[1]
+    cursory = touchpos[2]
   else
     cursorx = cursorx + ctrl:getValue('cursx') * 20
     cursory = cursory + ctrl:getValue('cursy') * 20
