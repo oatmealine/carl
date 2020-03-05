@@ -469,8 +469,13 @@ function love.update(dt)
   if not usingcursor then
     cursorx, cursory = love.mouse.getPosition()
   elseif mobile and not mobileoverride then
-    cursorx = touchpos[1]
-    cursory = touchpos[2]
+    if touchpos then
+      cursorx = touchpos[1]
+      cursory = touchpos[2]
+    else
+      cursorx = 0
+      cursory = 0
+    end
   else
     cursorx = cursorx + ctrl:getValue('cursx') * 20
     cursory = cursory + ctrl:getValue('cursy') * 20
