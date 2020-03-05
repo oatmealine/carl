@@ -13,6 +13,5 @@ function love.conf(t)
   t.window.resizable = true
 
   t.modules.thread = false
-  t.modules.touch = false
   t.modules.video = false
 end

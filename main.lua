@@ -866,4 +866,10 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
   end
 end
 
+function love.touchreleased(id, x, y)
+  if joysticktouch == id then
+    joysticktouch = nil
+  end
+end
+
 ctrl:hookup()
