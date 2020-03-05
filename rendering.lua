@@ -415,6 +415,39 @@ this.renderUI = function()
       love.graphics.draw(bullet, bullet:getWidth() * 3.5 * i - bullet:getWidth()*3.0, 3, 0, 3, 3)
     end
   end
+
+  if mobile and not ineditor and not pause then
+    love.graphics.setColor(0.3, 0.3, 0.3)
+
+    local marginsize = love.graphics.getWidth() / 20
+
+    joysticksize = love.graphics.getHeight() / 3
+
+    joystickx = joysticksize / 2 + marginsize
+    joysticky = love.graphics.getHeight() - joysticksize / 2 - marginsize
+    
+    love.graphics.circle('fill', joystickx, joysticky, joysticksize / 2)
+  
+    local touchx, touchy
+
+    if not joysticktouch then
+      touchx = joystickx
+      touchy = joysticky
+    elseif joysticktouch == 'mouse' then
+      touchx, touchy = love.mouse.getPosition()
+    else
+      touchx, touchy = love.touch.getPosition(joysticktouch)
+    end
+
+    touchx = math.min(touchx, joystickx + joysticksize / 4)
+    touchx = math.max(touchx, joystickx - joysticksize / 4)
+    touchy = math.min(touchy, joysticky + joysticksize / 4)
+    touchy = math.max(touchy, joysticky - joysticksize / 4)
+
+
+    love.graphics.setColor(0.6, 0.6, 0.6)
+    love.graphics.circle('fill', touchx, touchy, joysticksize / 4)
+  end
 end
 
 function freshparticle()

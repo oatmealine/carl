@@ -22,6 +22,13 @@ sprites = {}
 fonts = {}
 sounds = {}
 
+mobile = love.system.getOS() == 'Android' or love.system.getOS() == 'iOS' or mobileoverride
+
+joystickx = 0 -- mobile stuff
+joysticky = 0
+joysticksize = 0
+joysticktouch = nil
+
 seedebug = false -- see the debug values
 
 ineditor = false -- whether youre editing a level or not
@@ -408,11 +415,30 @@ function love.load()
   love.graphics.setBackgroundColor(0.41, 0.53, 0.97)
   love.graphics.setDefaultFilter('nearest','nearest', 2)
 
+  if mobile then
+    love.window.setMode(732, 412, {fullscreen = false})
+  end
+
   print('boot took ' .. math.floor(love.timer.getTime() - upAt) .. 'ms!')
 end
 
 
 function love.update(dt)
+  local joystickdx, joystickdy = 0, 0
+
+  if joysticktouch then
+    local touchx, touchy
+
+    if joysticktouch == 'mouse' then
+      touchx, touchy = love.mouse.getPosition()
+    else
+      touchx, touchy = love.touch.getPosition(joysticktouch)
+    end
+
+    joystickdx = touchx - joystickx
+    joystickdy = touchy - joysticky
+  end
+
   -- game speed
   dt = dt * speed
 
@@ -449,23 +475,23 @@ function love.update(dt)
   end
 
   -- input handling
-  if ctrl:isDown("right") and not ontitlescreen then
+  if (ctrl:isDown("right") or joystickdx > 10) and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
       objects.ball.body:setPosition(x + dt * 1000 * ctrl:getValue("right"), y)
     else
-      objects.ball.body:applyForce(MOVEFORCE * ctrl:getValue("right"), 0)
+      objects.ball.body:applyForce(MOVEFORCE * (ctrl:getValue("right") + math.min(joystickdx / (joysticksize / 3), 1)), 0)
     end
-  elseif ctrl:isDown("left") and not ontitlescreen then
+  elseif (ctrl:isDown("left") or joystickdx < -10) and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
       objects.ball.body:setPosition(x - dt * 1000 * ctrl:getValue("left"), y)
     else
-      objects.ball.body:applyForce(-MOVEFORCE * ctrl:getValue("left"), 0)
+      objects.ball.body:applyForce(-MOVEFORCE * (ctrl:getValue("left") + math.min(-joystickdx / (joysticksize / 3), 1)), 0)
     end
   end
 
-  if ctrl:isDown("jump") and carlcanjump and not ontitlescreen then
+  if (ctrl:isDown("jump") or joystickdy < -30) and carlcanjump and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
       objects.ball.body:setPosition(x, y - dt * 1000 * ctrl:getValue("jump"))
@@ -491,7 +517,7 @@ function love.update(dt)
   end
 
   -- shooting
-  if ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor then
+  if (ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor) and ((not joysticktouch == 'mouse') or ontitlescreen) then
     if carlweapon == 0 then
       local gunwidth = objects.ball.shape:getRadius()*3
       local mx,my = worldcam:mousePosition()
@@ -677,6 +703,11 @@ function love.keypressed(key)
 end
 
 function love.mousepressed(x, y, button)
+  if pointInBox(x, y, joystickx - joysticksize / 2, joysticky - joysticksize / 2, joysticksize, joysticksize) and mobileoverride and button == 1 then
+    joysticktouch = 'mouse'
+    return
+  end
+  
   --tool selection
   local i
   for i = 0,3 do
@@ -745,6 +776,10 @@ function love.mousepressed(x, y, button)
 end
 
 function love.mousereleased(x, y, m)
+  if joysticktouch == 'mouse' and m == 1 then
+    joysticktouch = nil
+  end
+
   if m == 1 and ineditor and toolprop ~= nil then
     if tool == 1 or tool == 2 then
       editorcreateshape()
@@ -765,6 +800,14 @@ function love.wheelmoved(x, y)
     zoom = zoom + y/12
   else
     carlweapon = (carlweapon + y)%3
+  end
+end
+
+function love.touchpressed(id, x, y, dx, dy, pressure)
+  if pointInBox(x, y, joystickx - joysticksize / 2, joysticky - joysticksize / 2, joysticksize, joysticksize) then
+    joysticktouch = id
+  else
+    love.mousepressed(x, y, 1)
   end
 end
 
