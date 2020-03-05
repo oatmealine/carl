@@ -69,6 +69,12 @@ speed = 1.0 -- game speed (experimental)
 tool = 0 -- editor tool
 toolprop = nil -- properties of the tool
 
+-- controller support shenanigans
+cursorx = 0
+cursory = 0
+
+local usingcursor = false
+
 -- temp
 level = json.decode(love.filesystem.read('level.json'))
 
@@ -450,6 +456,20 @@ function love.update(dt)
   -- if its paused just stop there
   if pause then return end
   gametimer.update(dt)
+
+  -- controller control stuff
+  if not usingcursor then
+    cursorx, cursory = love.mouse.getPosition()
+  else
+    cursorx = cursorx + ctrl:getValue('cursx') * 20
+    cursory = cursory + ctrl:getValue('cursy') * 20
+
+    -- keep it in-range
+    cursorx = math.min(love.graphics.getWidth(), cursorx)
+    cursorx = math.max(0, cursorx)
+    cursory = math.min(love.graphics.getHeight(), cursory)
+    cursory = math.max(0, cursory)
+  end
   
   -- carl trail
   local vx, vy = objects.ball.body:getLinearVelocity()
@@ -463,26 +483,26 @@ function love.update(dt)
   gametime = gametime + dt
 
   -- aiming position for rendering
-  aimpos = {love.mouse.getX(), love.mouse.getY(), ctrl:isDown('harden')}
+  aimpos = {cursorx, cursory, ctrl:isDown('harden')}
 
   -- camera positioning
   if gametime-titlescreentweenstart < 2 then
     worldcam:lockPosition(math.max(objects.ball.body:getX(), 100),
     objects.ball.body:getY() - 600 + ease.inOutSine(gametime-titlescreentweenstart, 0, 600, 2))
   else
-    worldcam:lockPosition(math.max(objects.ball.body:getX() + (love.mouse.getX()-love.graphics.getWidth())/(love.graphics.getWidth()/2)*24, 100),
-    math.min(objects.ball.body:getY() + (love.mouse.getY()-love.graphics.getHeight())/(love.graphics.getHeight()/2)*20, 800))
+    worldcam:lockPosition(math.max(objects.ball.body:getX() + (cursorx-love.graphics.getWidth())/(love.graphics.getWidth()/2)*24, 100),
+    math.min(objects.ball.body:getY() + (cursory-love.graphics.getHeight())/(love.graphics.getHeight()/2)*20, 800))
   end
 
   -- input handling
-  if (ctrl:isDown("right") or joystickdx > 10) and not ontitlescreen then
+  if (ctrl:isDown("right") or joystickdx > 10 or ctrl:getValue('right') > 0.1) and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
       objects.ball.body:setPosition(x + dt * 1000 * ctrl:getValue("right"), y)
     else
       objects.ball.body:applyForce(MOVEFORCE * (ctrl:getValue("right") + math.min(joystickdx / (joysticksize / 3), 1)), 0)
     end
-  elseif (ctrl:isDown("left") or joystickdx < -10) and not ontitlescreen then
+  elseif (ctrl:isDown("left") or joystickdx < -10 or ctrl:getValue('left') > 0.1) and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
       objects.ball.body:setPosition(x - dt * 1000 * ctrl:getValue("left"), y)
@@ -491,7 +511,7 @@ function love.update(dt)
     end
   end
 
-  if (ctrl:isDown("jump") or joystickdy < -30) and carlcanjump and not ontitlescreen then
+  if (ctrl:isDown("jump") or joystickdy < -30 or ctrl:getValue('jump') > 0.5) and carlcanjump and not ontitlescreen then
     if ineditor then
       local x,y = objects.ball.body:getPosition()
       objects.ball.body:setPosition(x, y - dt * 1000 * ctrl:getValue("jump"))
@@ -520,7 +540,7 @@ function love.update(dt)
   if (ctrl:isDown("fire") and carlschut < 10 and not carldead and carlammo > 0 and not ineditor) and ((not joysticktouch == 'mouse') or ontitlescreen) then
     if carlweapon == 0 then
       local gunwidth = objects.ball.shape:getRadius()*3
-      local mx,my = worldcam:mousePosition()
+      local mx,my = worldcam:worldCoords(cursorx, cursory)
       local carlrot = math.atan2(my-objects.ball.body:getY(), mx-objects.ball.body:getX())
       carlschutorigin = {objects.ball.body:getX(), objects.ball.body:getY()}
       carlschutloc = {mx + ((math.random(30, 100) / 100 * carlschut * (math.random(0, 1) * 2 - 1)) / 10 * 50), my+((math.random(30, 100) / 100 * carlschut * (math.random(0, 1) * 2 - 1)) / 10 * 50)}
@@ -695,6 +715,14 @@ function ctrl:inputpressed(name, value)
   end
 end
 
+function ctrl:inputmoved(name, value)
+  if value > 0.1 then carlblink = 0 end
+
+  if name == 'cursx' or name == 'cursy' and value > 0.5 then
+    usingcursor = true
+  end
+end
+
 function love.keypressed(key)
   -- saving
   if key == 's' and love.keyboard.isDown('lctrl') and ineditor then
@@ -731,7 +759,6 @@ function love.mousepressed(x, y, button)
       if tool == 1 or tool == 2 then
         toolprop = {x, y}
       end
-
       -- polygons
       if tool == 3 then
         if toolprop == nil then toolprop = {} end
@@ -741,6 +768,22 @@ function love.mousepressed(x, y, button)
         if #toolprop == 8 then
           editorcreateshape()
           toolprop = nil
+        end
+      end
+      -- dragging
+      if tool == 0 then
+        local body
+        local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
+        for _,i in ipairs(world:getBodies()) do
+          for _,b in ipairs(i:getFixtures()) do
+            if b:testPoint(x, y) then
+              body = i
+            end
+          end
+        end
+
+        if body then
+          toolprop = {body:getX() - x, body:getY() - y, body}
         end
       end
     elseif button == 2 then
@@ -766,7 +809,6 @@ function love.mousepressed(x, y, button)
             local x, y = worldcam:worldCoords(love.mouse.getX(), love.mouse.getY())
             if b:testPoint(x, y) then
               b:destroy()
-              print('destroyed body')
             end
           end
         end
@@ -783,6 +825,8 @@ function love.mousereleased(x, y, m)
   if m == 1 and ineditor and toolprop ~= nil then
     if tool == 1 or tool == 2 then
       editorcreateshape()
+    elseif tool == 0 then
+      toolprop = nil
     end
   end
 
@@ -792,7 +836,18 @@ function love.mousereleased(x, y, m)
 end
 
 function love.mousemoved(x, y, dx, dy)
-  if dx ~= 0 and dy ~= 0 then carlblink = 0 end
+  if dx ~= 0 and dy ~= 0 then
+    carlblink = 0
+    usingcursor = false
+  end
+
+  if ineditor and toolprop ~= nil and tool == 0 then
+    local body = toolprop[3]
+    x, y = worldcam:worldCoords(x, y)
+    
+    body:setPosition(x + toolprop[1], y + toolprop[2])
+    body:setLinearVelocity(0, 0)
+  end
 end
 
 function love.wheelmoved(x, y)
