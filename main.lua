@@ -892,6 +892,7 @@ function love.touchpressed(id, x, y, dx, dy, pressure)
   if pointInBox(x, y, joystickx - joysticksize / 2, joysticky - joysticksize / 2, joysticksize, joysticksize) then
     joysticktouch = id
   else
+    if id == joysticktouch then return end
     touchpos = {x, y}
     love.mousepressed(x, y, 1)
   end
